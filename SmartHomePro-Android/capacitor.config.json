@@ -1,6 +1,5 @@
 {
   "appId": "com.smarthomepro.app",
   "appName": "SmartHome Pro",
-  "webDir": "www",
-  "bundledWebRuntime": false
+  "webDir": "www"
 }

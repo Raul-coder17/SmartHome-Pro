@@ -5,8 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartHome Pro</title>
-    <!-- Capacitor Core Engine Bridge -->
-    <script src="capacitor.js"></script>
+    <!-- Capacitor 6: bridge JS is injected automatically by BridgeActivity -->
     <!-- Iconos PWA -->
     <link rel="icon" type="image/png" href="static/icon.png">
     <link rel="apple-touch-icon" href="static/icon.png">
@@ -917,10 +916,29 @@
 
         // --- Inicialización ---
 
-        document.addEventListener("DOMContentLoaded", () => {
+        async function waitForCapacitorBridge(maxWaitMs = 3000) {
+            const start = Date.now();
+            while (!window.Capacitor && (Date.now() - start) < maxWaitMs) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+            if (window.Capacitor) {
+                console.log("Capacitor Bridge detectado correctamente.");
+            } else {
+                console.warn("Capacitor Bridge no disponible después de " + maxWaitMs + "ms.");
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            // Renderizar inmediatamente con datos locales
             obtenerDispositivos();
             obtenerColoresFavoritos();
             obtenerProgramaciones();
+
+            // Esperar a que el bridge nativo esté listo antes del polling
+            await waitForCapacitorBridge();
+
+            // Consultar estados reales ahora que el bridge está disponible
+            actualizarEstadosDispositivos();
 
             // Polling de estados locales cada 4 segundos
             setInterval(obtenerDispositivosSilencioso, 4000);
@@ -1532,6 +1550,9 @@
                 </div>
             `;
 
+            // Esperar a que el bridge esté disponible
+            await waitForCapacitorBridge(2000);
+
             if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
                 try {
                     const res = await Capacitor.Plugins.SocketBridge.scanNetwork({ timeout: 2500 });
@@ -1577,7 +1598,8 @@
             } else {
                 resultsContainer.innerHTML = `
                     <div style="text-align: center; padding: 20px 0; color: var(--text-secondary); font-size: 14px;">
-                        Capacitor Bridge no detectado. Abre la app en tu celular.
+                        <p style="margin-bottom: 8px;">⚠️ Capacitor Bridge no detectado.</p>
+                        <p style="font-size: 12px; opacity: 0.7;">Esta función solo está disponible desde la app nativa de Android.</p>
                     </div>
                 `;
                 btn.disabled = false;
