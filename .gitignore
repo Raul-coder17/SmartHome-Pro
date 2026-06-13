@@ -20,6 +20,8 @@ app/build/
 *.apk
 *.aar
 *.jar
+!gradle-wrapper.jar
+!**/gradle-wrapper.jar
 local.properties
 .idea/
 *.iml
