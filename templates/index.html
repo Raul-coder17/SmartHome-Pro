@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHome Pro</title>
+    <!-- Iconos PWA -->
+    <link rel="icon" type="image/png" href="/static/icon.png">
+    <link rel="apple-touch-icon" href="/static/icon.png">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0f14;
+            --card-bg: rgba(22, 26, 36, 0.6);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #8f9cae;
+            --accent-cyan: #00f0ff;
+            --accent-purple: #ab47bc;
+            --accent-green: #39ff14;
+            --accent-red: #ff3838;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Fondo Decorativo de Gradiente Difuminado (Glow effect) */
+        .glow-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .glow-blob-1 {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            top: -50px;
+            left: -50px;
+            border-radius: 50%;
+        }
+
+        .glow-blob-2 {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(171, 71, 188, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+            bottom: -100px;
+            right: -100px;
+            border-radius: 50%;
+        }
+
+        header {
+            width: 100%;
+            max-width: 600px;
+            padding: 30px 20px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(45deg, #ffffff, var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .btn-scan {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-scan:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 0 20px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Barra de Acciones Globales */
+        .quick-actions-bar {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .btn-action-all {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-action-all.turn-on:hover {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+
+        .btn-action-all.turn-off:hover {
+            background: rgba(255, 56, 56, 0.1);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            box-shadow: 0 0 15px rgba(255, 56, 56, 0.2);
+        }
+
+        /* Tarjeta de Dispositivo */
+        .device-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .device-card.online {
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        .device-card.active-light {
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+
+        .device-card.active-plug {
+            box-shadow: 0 0 30px rgba(57, 255, 20, 0.12);
+            border-color: rgba(57, 255, 20, 0.25);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .device-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .device-name {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .device-ip {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .status-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-badge.online {
+            color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.1);
+            border-color: rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+        }
+
+        .status-badge.offline {
+            color: var(--accent-red);
+            background: rgba(255, 56, 56, 0.1);
+            border-color: rgba(255, 56, 56, 0.2);
+        }
+
+        /* Botón de Olvidar Dispositivo */
+        .btn-delete-device {
+            background: rgba(255, 56, 56, 0.05);
+            border: 1px solid rgba(255, 56, 56, 0.2);
+            color: var(--accent-red);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-delete-device:hover {
+            background: var(--accent-red);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 56, 56, 0.4);
+            border-color: var(--accent-red);
+        }
+
+        /* Botón de Programación */
+        .btn-schedule-device {
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            color: var(--accent-cyan);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-schedule-device:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+            border-color: var(--accent-cyan);
+        }
+
+        /* Botón de Encendido / Apagado */
+        .power-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 16px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .power-btn.on {
+            background: var(--accent-cyan);
+            color: #000;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+        }
+
+        .power-btn.on.plug-btn {
+            background: var(--accent-green);
+            color: #000;
+            border-color: var(--accent-green);
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+        }
+
+        /* Controles de Foco (RGB & Whites) */
+        .color-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 18px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .color-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* Selector de Color Personalizado */
+        .picker-wrapper {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+        }
+
+        .picker-wrapper input[type="color"] {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .btn-save-color {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save-color:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Lista de Colores Favoritos */
+        .saved-colors-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .color-bubble {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            position: relative;
+            border: 2px solid transparent;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .color-bubble:hover {
+            transform: scale(1.1);
+            border-color: #fff;
+        }
+
+        .color-bubble .delete-color-btn {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 14px;
+            height: 14px;
+            background: #ff3838;
+            color: #fff;
+            font-size: 9px;
+            border-radius: 50%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #000;
+        }
+
+        .color-bubble:hover .delete-color-btn {
+            display: flex;
+        }
+
+        /* Sliders de Luz Blanca */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .slider-input {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        .slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+            transition: transform 0.1s ease;
+        }
+
+        .slider-input::-webkit-slider-thumb:active {
+            transform: scale(1.3);
+        }
+
+        /* --- Estilos del Drawer de Programaciones --- */
+        .schedule-drawer {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 18px;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .days-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 5px;
+        }
+
+        .days-pills label {
+            cursor: pointer;
+        }
+
+        .days-pills input {
+            display: none;
+        }
+
+        .days-pills span {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--card-border);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .days-pills input:checked+span {
+            background: var(--accent-cyan);
+            color: #000;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Switch Toggle para Programaciones */
+        .switch-container {
+            position: relative;
+            display: inline-block;
+            width: 38px;
+            height: 20px;
+        }
+
+        .switch-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            transition: .3s;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .3s;
+        }
+
+        .switch-container input:checked+.switch-slider {
+            background-color: var(--accent-cyan);
+        }
+
+        .switch-container input:checked+.switch-slider:before {
+            transform: translateX(18px);
+            background-color: #000;
+        }
+
+        /* Ventanas Modales */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #121620;
+            border: 1px solid var(--card-border);
+            width: 100%;
+            max-width: 450px;
+            border-radius: 28px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* Campos de formulario */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+            width: 100%;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .btn-submit {
+            background: var(--accent-cyan);
+            color: #000;
+            border: none;
+            padding: 14px;
+            border-radius: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn-submit:hover {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Lista de Dispositivos Escaneados */
+        .scan-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .scan-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .scan-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .scan-item-ip {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .scan-item-mac {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .scan-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-identify {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-identify:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-add-scanned {
+            background: var(--accent-cyan);
+            border: none;
+            color: #000;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .loader {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top: 3px solid var(--accent-cyan);
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner-container {
+            text-align: center;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="glow-bg">
+        <div class="glow-blob-1"></div>
+        <div class="glow-blob-2"></div>
+    </div>
+
+    <header>
+        <h1>SmartHome Pro</h1>
+        <button class="btn-scan" onclick="abrirModalEscanear()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Escanear
+        </button>
+    </header>
+
+    <div class="container">
+        <!-- Acciones Rápidas Globales -->
+        <div class="quick-actions-bar">
+            <button class="btn-action-all turn-on" onclick="controlarTodos(true)">Encender Todo</button>
+            <button class="btn-action-all turn-off" onclick="controlarTodos(false)">Apagar Todo</button>
+        </div>
+
+        <div id="devices-container" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+            <!-- Tarjetas dinámicas se inyectarán aquí -->
+            <div style="text-align: center; color: var(--text-secondary); padding: 40px 0;">
+                Cargando dispositivos...
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE ESCANEO -->
+    <div class="modal" id="modal-escanear">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Buscando Dispositivos</span>
+                <button class="modal-close" onclick="cerrarModalEscanear()">×</button>
+            </div>
+
+            <div id="scan-modal-body">
+                <!-- Cargador o lista de escaneo -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE GUARDAR COLOR -->
+    <div class="modal" id="modal-guardar-color">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Guardar Color Favorito</span>
+                <button class="modal-close" onclick="cerrarModalGuardarColor()">×</button>
+            </div>
+
+            <div class="form-group">
+                <label for="color-name-input">Nombre del Color</label>
+                <input type="text" id="color-name-input" placeholder="Ej. Azul Relajante">
+            </div>
+
+            <button class="btn-submit" onclick="confirmarGuardarColor()">Guardar Color</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE REGISTRO DE DISPOSITIVO -->
+    <div class="modal" id="modal-registrar-dispositivo">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Registrar Dispositivo</span>
+                <button class="modal-close" onclick="cerrarModalRegistrar()">×</button>
+            </div>
+
+            <div class="form-group">
+                <label for="reg-ip">IP del Dispositivo</label>
+                <input type="text" id="reg-ip" readonly>
+            </div>
+
+            <div class="form-group">
+                <label for="reg-nombre">Nombre Descriptivo</label>
+                <input type="text" id="reg-nombre" placeholder="Ej. Foco Cuarto">
+            </div>
+
+            <div class="form-group">
+                <label for="reg-tipo">Tipo</label>
+                <select id="reg-tipo">
+                    <option value="foco">Foco (Bulb RGBCW)</option>
+                    <option value="enchufe">Enchufe (Smart Plug)</option>
+                </select>
+            </div>
+
+            <button class="btn-submit" onclick="confirmarRegistroDispositivo()">Guardar en Red</button>
+        </div>
+    </div>
+
+    <script>
+        let dispositivos = [];
+        let coloresFavoritos = [];
+        let programaciones = [];
+        let colorSeleccionadoRgb = { r: 255, g: 255, b: 255 };
+
+        // Carga inicial
+        document.addEventListener("DOMContentLoaded", () => {
+            obtenerDispositivos();
+            obtenerColoresFavoritos();
+            obtenerProgramaciones();
+
+            // Configurar Polling Silencioso cada 4 segundos (Monitoreo en vivo)
+            setInterval(obtenerDispositivosSilencioso, 4000);
+        });
+
+        // Obtener lista de dispositivos desde el backend
+        async function obtenerDispositivos() {
+            try {
+                const res = await fetch("/api/dispositivos");
+                dispositivos = await res.json();
+                renderizarDispositivos();
+            } catch (err) {
+                console.error("Error cargando dispositivos:", err);
+            }
+        }
+
+        // Polling silencioso para actualizar estados dinámicamente sin redibujar el DOM
+        async function obtenerDispositivosSilencioso() {
+            try {
+                const res = await fetch("/api/dispositivos");
+                const nuevos = await res.json();
+
+                nuevos.forEach(dev => {
+                    const card = document.querySelector(`[data-ip="${dev.ip}"]`);
+                    if (card) {
+                        // Actualizar badge de estado
+                        const badge = card.querySelector(".status-badge");
+                        if (badge) {
+                            badge.className = `status-badge ${dev.online ? 'online' : 'offline'}`;
+                            badge.innerText = dev.online ? 'ONLINE' : 'OFFLINE';
+                        }
+
+                        // Actualizar clases de encendido
+                        let activeClass = "";
+                        if (dev.online && dev.encendido) {
+                            activeClass = dev.tipo === "foco" ? "active-light" : "active-plug";
+                        }
+                        card.classList.remove("active-light", "active-plug", "online");
+                        if (dev.online) card.classList.add("online");
+                        if (activeClass) card.classList.add(activeClass);
+
+                        // Actualizar botón de encendido
+                        const powerBtn = card.querySelector(".power-btn");
+                        if (powerBtn) {
+                            if (!dev.online) {
+                                powerBtn.setAttribute("disabled", "true");
+                            } else {
+                                powerBtn.removeAttribute("disabled");
+                            }
+
+                            if (dev.online && dev.encendido) {
+                                powerBtn.classList.add("on");
+                                powerBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg> Apagar`;
+                            } else {
+                                powerBtn.classList.remove("on");
+                                powerBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg> Encender`;
+                            }
+                        }
+
+                        // Guardar en el array en memoria local
+                        const localDev = dispositivos.find(d => d.ip === dev.ip);
+                        if (localDev) {
+                            localDev.online = dev.online;
+                            localDev.encendido = dev.encendido;
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Error en polling silencioso:", err);
+            }
+        }
+
+        // Obtener colores guardados
+        async function obtenerColoresFavoritos() {
+            try {
+                const res = await fetch("/api/colores");
+                coloresFavoritos = await res.json();
+                renderizarColoresFavoritosEnFocos();
+            } catch (err) {
+                console.error("Error cargando colores:", err);
+            }
+        }
+
+        // Obtener todas las programaciones
+        async function obtenerProgramaciones() {
+            try {
+                const res = await fetch("/api/programaciones");
+                programaciones = await res.json();
+
+                // Renderizar programaciones en los drawers que estén abiertos
+                dispositivos.forEach(dev => {
+                    const drawer = document.getElementById(`schedule-drawer-${dev.ip.replace(/\./g, '-')}`);
+                    if (drawer && drawer.style.display === "flex") {
+                        renderizarProgramacionesDeDispositivo(dev.ip);
+                    }
+                });
+            } catch (err) {
+                console.error("Error cargando programaciones:", err);
+            }
+        }
+
+        // Renderizar tarjetas de dispositivos
+        function renderizarDispositivos() {
+            const container = document.getElementById("devices-container");
+            container.innerHTML = "";
+
+            if (dispositivos.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: var(--text-secondary); padding: 40px 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; backdrop-filter: blur(10px);">
+                        <p style="margin-bottom: 15px;">No hay dispositivos registrados.</p>
+                        <p style="font-size: 13px;">Haz clic en <strong>Escanear</strong> arriba para buscarlos automáticamente.</p>
+                    </div>`;
+                return;
+            }
+
+            dispositivos.forEach(dev => {
+                const card = document.createElement("div");
+                card.setAttribute("data-ip", dev.ip);
+                let activeClass = "";
+                if (dev.online && dev.encendido) {
+                    activeClass = dev.tipo === "foco" ? "active-light" : "active-plug";
+                }
+                card.className = `device-card ${dev.online ? 'online' : ''} ${activeClass}`;
+
+                let controlesExtrasHTML = "";
+                if (dev.online && dev.tipo === "foco") {
+                    controlesExtrasHTML = `
+                        <div class="color-controls">
+                            <span class="section-title">Canales de Color</span>
+                            <div class="color-picker-row">
+                                <div class="picker-wrapper">
+                                    <input type="color" value="#ffffff" oninput="throttleControlColor('${dev.ip}', this.value)">
+                                </div>
+                                <button class="btn-save-color" onclick="abrirModalGuardarColor('${dev.ip}')">Guardar Color</button>
+                            </div>
+                            
+                            <div class="saved-colors-grid" id="colors-grid-${dev.ip.replace(/\./g, '-')}">
+                                <!-- Burbujas de colores inyectadas por JS -->
+                            </div>
+                            
+                            <span class="section-title">Ajustes de Blancos</span>
+                            <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>Calidez (Frío - Cálido)</span>
+                                </div>
+                                <input type="range" min="0" max="100" value="50" class="slider-input" onchange="cambiarBlanco('${dev.ip}', this.value, null)">
+                            </div>
+                            
+                            <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>Intensidad</span>
+                                </div>
+                                <input type="range" min="10" max="100" value="100" class="slider-input" onchange="cambiarBlanco('${dev.ip}', null, this.value)">
+                            </div>
+                        </div>`;
+                }
+
+                // Generar ID seguro para los selectores CSS basados en la IP
+                const ipId = dev.ip.replace(/\./g, '-');
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="device-info">
+                            <span class="device-name">${dev.nombre}</span>
+                            <span class="device-ip">${dev.ip} (${dev.tipo.toUpperCase()})</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span class="status-badge ${dev.online ? 'online' : 'offline'}">${dev.online ? 'ONLINE' : 'OFFLINE'}</span>
+                            <button class="btn-schedule-device" onclick="alternarSeccionProgramacion('${dev.ip}')" title="Programar encendido/apagado">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </button>
+                            <button class="btn-delete-device" onclick="confirmarEliminarDispositivo('${dev.ip}', '${dev.nombre}')" title="Olvidar dispositivo">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button class="power-btn ${dev.online && dev.encendido ? 'on' : ''} ${dev.tipo === 'enchufe' ? 'plug-btn' : ''}" ${!dev.online ? 'disabled' : ''} onclick="alternarEncendido('${dev.ip}', ${dev.encendido})">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                        ${dev.online && dev.encendido ? 'Apagar' : 'Encender'}
+                    </button>
+                    
+                    ${controlesExtrasHTML}
+
+                    <!-- DRAWER DE PROGRAMACIONES (PLANIFICADOR) -->
+                    <div class="schedule-drawer" id="schedule-drawer-${ipId}">
+                        <span class="section-title">Tareas Programadas</span>
+                        
+                        <!-- Listado de tareas existentes -->
+                        <div id="schedule-list-${ipId}" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Inyectado por JS -->
+                        </div>
+
+                        <!-- Formulario para agregar una nueva tarea -->
+                        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); padding: 14px; border-radius: 16px; display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">
+                            <span style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Nueva Programación</span>
+                            
+                            <div style="display: flex; gap: 10px;">
+                                <div style="flex: 1; display:flex; flex-direction:column; gap:4px;">
+                                    <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Hora</label>
+                                    <input type="time" class="sch-time-input" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; outline: none;">
+                                </div>
+                                <div style="flex: 1; display:flex; flex-direction:column; gap:4px;">
+                                    <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Acción</label>
+                                    <select class="sch-action-input" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 14px; outline: none;">
+                                        <option value="encender">Encender</option>
+                                        <option value="apagar">Apagar</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <label style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">Repetir Días (si no eliges ninguno, será diario)</label>
+                                <div class="days-pills">
+                                    <label><input type="checkbox" value="Lunes"><span>Lu</span></label>
+                                    <label><input type="checkbox" value="Martes"><span>Ma</span></label>
+                                    <label><input type="checkbox" value="Miércoles"><span>Mi</span></label>
+                                    <label><input type="checkbox" value="Jueves"><span>Ju</span></label>
+                                    <label><input type="checkbox" value="Viernes"><span>Vi</span></label>
+                                    <label><input type="checkbox" value="Sábado"><span>Sá</span></label>
+                                    <label><input type="checkbox" value="Domingo"><span>Do</span></label>
+                                </div>
+                            </div>
+
+                            <button class="btn-submit" onclick="guardarNuevaProgramacion('${dev.ip}')" style="padding: 10px; font-size: 13px; margin-top: 5px;">Añadir Tarea</button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+                if (dev.online && dev.tipo === "foco") {
+                    renderizarColoresFavoritosDeFoco(dev.ip);
+                }
+            });
+        }
+
+        // --- Manejo de la Interfaz del Programador ---
+
+        function alternarSeccionProgramacion(ip) {
+            const drawerId = `schedule-drawer-${ip.replace(/\./g, '-')}`;
+            const drawer = document.getElementById(drawerId);
+            if (!drawer) return;
+
+            if (drawer.style.display === "none" || drawer.style.display === "") {
+                drawer.style.display = "flex";
+                renderizarProgramacionesDeDispositivo(ip);
+            } else {
+                drawer.style.display = "none";
+            }
+        }
+
+        function renderizarProgramacionesDeDispositivo(ip) {
+            const listId = `schedule-list-${ip.replace(/\./g, '-')}`;
+            const container = document.getElementById(listId);
+            if (!container) return;
+
+            container.innerHTML = "";
+            const filtradas = programaciones.filter(p => p.ip === ip);
+
+            if (filtradas.length === 0) {
+                container.innerHTML = `<p style="font-size: 13px; color: var(--text-secondary); text-align: center; padding: 10px 0;">Sin tareas programadas.</p>`;
+                return;
+            }
+
+            filtradas.forEach(p => {
+                const item = document.createElement("div");
+                item.style = "display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 10px 14px; margin-bottom: 2px;";
+
+                const diasStr = p.dias.length === 7 ? "Diario" : p.dias.map(d => d.slice(0, 2)).join(", ");
+
+                item.innerHTML = `
+                    <div style="display: flex; flex-direction: column; gap: 2px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: ${p.accion === 'encender' ? 'rgba(0, 240, 255, 0.1)' : 'rgba(255, 56, 56, 0.1)'}; color: ${p.accion === 'encender' ? 'var(--accent-cyan)' : 'var(--accent-red)'}; text-transform: uppercase;">${p.accion === 'encender' ? 'ON' : 'OFF'}</span>
+                            <span style="font-size: 16px; font-weight: 700;">${p.hora}</span>
+                        </div>
+                        <span style="font-size: 11px; color: var(--text-secondary);">${diasStr || 'Una vez'}</span>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <label class="switch-container">
+                            <input type="checkbox" ${p.activo ? 'checked' : ''} onchange="toggleProgramacion('${p.id}')">
+                            <span class="switch-slider"></span>
+                        </label>
+                        <button onclick="eliminarProgramacion('${p.id}')" style="background: none; border: none; color: var(--accent-red); cursor: pointer; font-size: 18px; width: 24px; height: 24px; display: flex; justify-content: center; align-items: center;">×</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function guardarNuevaProgramacion(ip) {
+            const drawerId = `schedule-drawer-${ip.replace(/\./g, '-')}`;
+            const drawer = document.getElementById(drawerId);
+            const timeVal = drawer.querySelector(".sch-time-input").value;
+            const actionVal = drawer.querySelector(".sch-action-input").value;
+
+            const checkedBoxes = drawer.querySelectorAll(".days-pills input:checked");
+            let dias = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (!timeVal) {
+                alert("Por favor, selecciona una hora para la programación.");
+                return;
+            }
+
+            // Si no se eligen días, se configura como Diario
+            if (dias.length === 0) {
+                dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+            }
+
+            try {
+                const res = await fetch("/api/programaciones/crear", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ip,
+                        accion: actionVal,
+                        hora: timeVal,
+                        dias
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Limpiar el formulario
+                    drawer.querySelector(".sch-time-input").value = "";
+                    drawer.querySelectorAll(".days-pills input:checked").forEach(cb => cb.checked = false);
+
+                    // Recargar de base de datos y actualizar la interfaz local
+                    await obtenerProgramaciones();
+                    renderizarProgramacionesDeDispositivo(ip);
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function toggleProgramacion(id) {
+            try {
+                const res = await fetch("/api/programaciones/toggle", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await obtenerProgramaciones();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function eliminarProgramacion(id) {
+            if (!confirm("¿Deseas eliminar esta tarea programada?")) return;
+            try {
+                const res = await fetch("/api/programaciones/eliminar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    await obtenerProgramaciones();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // --- Fin Programador ---
+
+        // Eliminar dispositivo físicamente del JSON local
+        async function confirmarEliminarDispositivo(ip, nombre) {
+            const confirmar = confirm(`¿Estás seguro de que deseas olvidar el dispositivo "${nombre}" (${ip})?\nSe eliminarán también sus programaciones.`);
+            if (!confirmar) return;
+
+            try {
+                const res = await fetch("/api/dispositivos/eliminar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ip })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    obtenerDispositivos();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Controlar todos los dispositivos a la vez
+        async function controlarTodos(encender) {
+            const accion = encender ? "encender" : "apagar";
+            try {
+                const res = await fetch("/api/dispositivos/control-global", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ accion })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    obtenerDispositivos();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Enviar alternancia de encendido/apagado
+        async function alternarEncendido(ip, estadoActual) {
+            const accion = estadoActual ? "apagar" : "encender";
+            try {
+                const res = await fetch("/api/dispositivos/control", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ip, accion })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const dev = dispositivos.find(d => d.ip === ip);
+                    if (dev) dev.encendido = !estadoActual;
+                    renderizarDispositivos();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Throttle para el cambio de color (limita llamadas a 1 cada 150ms)
+        let colorTimer = null;
+        function throttleControlColor(ip, hexColor) {
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            colorSeleccionadoRgb = { r, g, b };
+
+            if (colorTimer) return;
+            colorTimer = setTimeout(() => {
+                cambiarColor(ip, r, g, b);
+                colorTimer = null;
+            }, 150);
+        }
+
+        // Cambiar color RGB del foco
+        async function cambiarColor(ip, r, g, b) {
+            try {
+                await fetch("/api/dispositivos/control", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ip,
+                        accion: "color",
+                        params: { r, g, b }
+                    })
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Cambiar blancos
+        async function cambiarBlanco(ip, calidez, intensidad) {
+            const dev = dispositivos.find(d => d.ip === ip);
+            if (!dev) return;
+
+            if (calidez === null) calidez = 50;
+            if (intensidad === null) intensidad = 100;
+
+            try {
+                await fetch("/api/dispositivos/control", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ip,
+                        accion: "blanco",
+                        params: { calidez, intensidad }
+                    })
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Renderizar los colores guardados como burbujas de colores
+        function renderizarColoresFavoritosDeFoco(ip) {
+            const gridId = `colors-grid-${ip.replace(/\./g, '-')}`;
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+
+            grid.innerHTML = "";
+            coloresFavoritos.forEach(col => {
+                const bubble = document.createElement("div");
+                bubble.className = "color-bubble";
+                bubble.style.backgroundColor = `rgb(${col.r}, ${col.g}, ${col.b})`;
+                bubble.title = col.nombre;
+                bubble.onclick = () => cambiarColor(ip, col.r, col.g, col.b);
+
+                const deleteBtn = document.createElement("div");
+                deleteBtn.className = "delete-color-btn";
+                deleteBtn.innerText = "×";
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    eliminarColor(col.nombre);
+                };
+
+                bubble.appendChild(deleteBtn);
+                grid.appendChild(bubble);
+            });
+        }
+
+        function renderizarColoresFavoritosEnFocos() {
+            dispositivos.forEach(dev => {
+                if (dev.online && dev.tipo === "foco") {
+                    renderizarColoresFavoritosDeFoco(dev.ip);
+                }
+            });
+        }
+
+        // Eliminar color favorito
+        async function eliminarColor(nombre) {
+            try {
+                const res = await fetch("/api/colores/eliminar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nombre })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    obtenerColoresFavoritos();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Modales - Guardar Color
+        let ipColorPendiente = "";
+        function abrirModalGuardarColor(ip) {
+            ipColorPendiente = ip;
+            document.getElementById("modal-guardar-color").style.display = "flex";
+            document.getElementById("color-name-input").value = "";
+        }
+        function cerrarModalGuardarColor() {
+            document.getElementById("modal-guardar-color").style.display = "none";
+        }
+        async function confirmarGuardarColor() {
+            const nombre = document.getElementById("color-name-input").value.trim();
+            if (!nombre) {
+                alert("Introduce un nombre.");
+                return;
+            }
+            try {
+                const res = await fetch("/api/colores", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        nombre,
+                        r: colorSeleccionadoRgb.r,
+                        g: colorSeleccionadoRgb.g,
+                        b: colorSeleccionadoRgb.b
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    cerrarModalGuardarColor();
+                    obtenerColoresFavoritos();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Modales - Escanear Red
+        function abrirModalEscanear() {
+            document.getElementById("modal-escanear").style.display = "flex";
+            const body = document.getElementById("scan-modal-body");
+            body.innerHTML = `
+                <div class="spinner-container">
+                    <div class="loader"></div>
+                    <p style="color: var(--text-secondary); font-size: 14px;">Buscando en la red WiFi...</p>
+                </div>
+            `;
+            iniciarEscaneo();
+        }
+        function cerrarModalEscanear() {
+            document.getElementById("modal-escanear").style.display = "none";
+        }
+
+        async function iniciarEscaneo() {
+            try {
+                const res = await fetch("/api/dispositivos/escanear");
+                const nuevos = await res.json();
+                const body = document.getElementById("scan-modal-body");
+
+                if (nuevos.length === 0) {
+                    body.innerHTML = `
+                        <div style="text-align: center; padding: 20px 0; color: var(--text-secondary);">
+                            <p>No se encontraron nuevos dispositivos en este escaneo.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let itemsHTML = "";
+                nuevos.forEach(d => {
+                    itemsHTML += `
+                        <div class="scan-item">
+                            <div class="scan-item-info">
+                                <span class="scan-item-ip">${d.ip}</span>
+                                <span class="scan-item-mac">ID: ${d.id} (${d.modelo})</span>
+                            </div>
+                            <div class="scan-actions">
+                                <button class="btn-identify" onclick="identificarDispositivoEscaner('${d.ip}', true)">ON</button>
+                                <button class="btn-identify" onclick="identificarDispositivoEscaner('${d.ip}', false)">OFF</button>
+                                <button class="btn-add-scanned" onclick="abrirModalRegistrar('${d.ip}')">Agregar</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                body.innerHTML = `<div class="scan-list">${itemsHTML}</div>`;
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById("scan-modal-body").innerHTML = `<p style="color: var(--accent-red); text-align:center;">Error al escanear la red.</p>`;
+            }
+        }
+
+        // Identificar dispositivo encendiéndolo/apagándolo temporalmente
+        async function identificarDispositivoEscaner(ip, encender) {
+            const accion = encender ? "encender" : "apagar";
+            try {
+                await fetch("/api/dispositivos/control", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ip, accion })
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Registro de dispositivo
+        function abrirModalRegistrar(ip) {
+            document.getElementById("reg-ip").value = ip;
+            document.getElementById("reg-nombre").value = "";
+            document.getElementById("modal-registrar-dispositivo").style.display = "flex";
+        }
+        function cerrarModalRegistrar() {
+            document.getElementById("modal-registrar-dispositivo").style.display = "none";
+        }
+        async function confirmarRegistroDispositivo() {
+            const ip = document.getElementById("reg-ip").value;
+            const nombre = document.getElementById("reg-nombre").value.trim();
+            const tipo = document.getElementById("reg-tipo").value;
+
+            if (!nombre) {
+                alert("Asigna un nombre descriptivo.");
+                return;
+            }
+
+            try {
+                const res = await fetch("/api/dispositivos/agregar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ip, nombre, tipo })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    cerrarModalRegistrar();
+                    cerrarModalEscanear();
+                    obtenerDispositivos();
+                } else {
+                    alert("Error: " + data.error);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+    </script>
+</body>
+
+</html>

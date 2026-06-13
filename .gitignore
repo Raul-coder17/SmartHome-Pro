@@ -1,0 +1,36 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Local databases
+colores.json
+dispositivos.json
+programaciones.json
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android build outputs and caches
+.gradle/
+build/
+app/build/
+*.apk
+*.aar
+*.jar
+local.properties
+.idea/
+*.iml
+.cxx/
+capture.png
+*.webp
+.DS_Store
+
+# Capacitor generated files
+SmartHomePro-Android/www/capacitor.js
+SmartHomePro-Android/www/cordova.js
+SmartHomePro-Android/www/cordova_plugins.js
+SmartHomePro-Android/www/plugins/
+SmartHomePro-Android/android/app/src/main/assets/public/
