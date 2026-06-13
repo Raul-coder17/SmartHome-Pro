@@ -94,8 +94,8 @@ public class SocketBridgePlugin extends Plugin {
                 JSObject result = new JSObject();
                 try {
                     socket = new Socket();
-                    socket.connect(new InetSocketAddress(ip, 5577), 1500);
-                    socket.setSoTimeout(1500);
+                    socket.connect(new InetSocketAddress(ip, 5577), 2500);
+                    socket.setSoTimeout(2500);
 
                     // Envía comando de consulta de estado [0x81, 0x8a, 0x8b, 0x96]
                     byte[] query = new byte[]{(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};
@@ -105,9 +105,16 @@ public class SocketBridgePlugin extends Plugin {
 
                     InputStream in = socket.getInputStream();
                     byte[] buffer = new byte[32];
-                    int read = in.read(buffer);
+                    int totalRead = 0;
+                    while (totalRead < 4) {
+                        int read = in.read(buffer, totalRead, buffer.length - totalRead);
+                        if (read == -1) {
+                            break;
+                        }
+                        totalRead += read;
+                    }
 
-                    if (read >= 4 && (buffer[0] & 0xFF) == 0x81) {
+                    if (totalRead >= 4 && (buffer[0] & 0xFF) == 0x81) {
                         int powerByte = buffer[2] & 0xFF;
                         boolean isOn = (powerByte == 0x23); // 0x23 = ON, 0x24 = OFF
                         result.put("online", true);

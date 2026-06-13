@@ -1613,7 +1613,7 @@
             }
         }
 
-        // Probar/Identificar dispositivo: enciende → apaga → enciende rápidamente (flash)
+        // Probar/Identificar dispositivo: solo lo enciende una vez y se queda así
         async function probarDispositivo(ip, btnElement) {
             if (!window.Capacitor || !Capacitor.Plugins.SocketBridge) return;
 
@@ -1625,19 +1625,8 @@
             btnElement.style.borderColor = "var(--accent-cyan)";
 
             const ON_CMD  = [0x71, 0x23, 0x0F, 0xA3];
-            const OFF_CMD = [0x71, 0x24, 0x0F, 0xA4];
-            const delay = ms => new Promise(r => setTimeout(r, ms));
 
             try {
-                // Flash secuencia: ON → espera → OFF → espera → ON → espera → OFF → espera → ON
-                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: ON_CMD });
-                await delay(400);
-                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: OFF_CMD });
-                await delay(400);
-                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: ON_CMD });
-                await delay(400);
-                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: OFF_CMD });
-                await delay(400);
                 await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: ON_CMD });
             } catch (err) {
                 console.error("Error al probar dispositivo:", err);
