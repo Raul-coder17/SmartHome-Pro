@@ -24,9 +24,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import java.util.Calendar;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @CapacitorPlugin(name = "SocketBridge")
 public class SocketBridgePlugin extends Plugin {
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @PluginMethod
     public void sendTcpCommand(PluginCall call) {
@@ -39,7 +43,7 @@ public class SocketBridgePlugin extends Plugin {
         }
 
         // Ejecutar en hilo secundario para no bloquear el hilo principal de la UI
-        getBridge().executeOnExecutor(new Runnable() {
+        executor.execute(new Runnable() {
             @Override
             public void run() {
                 Socket socket = null;
@@ -83,7 +87,7 @@ public class SocketBridgePlugin extends Plugin {
             return;
         }
 
-        getBridge().executeOnExecutor(new Runnable() {
+        executor.execute(new Runnable() {
             @Override
             public void run() {
                 Socket socket = null;
@@ -131,7 +135,7 @@ public class SocketBridgePlugin extends Plugin {
     public void scanNetwork(PluginCall call) {
         int timeout = call.getInt("timeout", 2000);
 
-        getBridge().executeOnExecutor(new Runnable() {
+        executor.execute(new Runnable() {
             @Override
             public void run() {
                 DatagramSocket socket = null;
