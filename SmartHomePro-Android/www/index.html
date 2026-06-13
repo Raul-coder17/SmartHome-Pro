@@ -1576,11 +1576,17 @@
                                     <div class="scan-card-name">${dev.model}</div>
                                     <div class="scan-card-ip">${dev.ip} <span style="opacity:0.5;">(${dev.mac})</span></div>
                                 </div>
-                                <button class="scan-card-btn" 
-                                        onclick="abrirModalRegistrar('${dev.ip}')" 
-                                        ${yaRegistrado ? 'disabled' : ''}>
-                                    ${yaRegistrado ? 'Agregado' : 'Añadir'}
-                                </button>
+                                <div style="display: flex; gap: 6px; align-items: center;">
+                                    <button class="scan-card-btn" style="background: rgba(171, 71, 188, 0.15); color: var(--accent-purple); border: 1px solid rgba(171, 71, 188, 0.3);"
+                                            onclick="probarDispositivo('${dev.ip}', this)">
+                                        💡 Probar
+                                    </button>
+                                    <button class="scan-card-btn" 
+                                            onclick="abrirModalRegistrar('${dev.ip}')" 
+                                            ${yaRegistrado ? 'disabled' : ''}>
+                                        ${yaRegistrado ? 'Agregado' : 'Añadir'}
+                                    </button>
+                                </div>
                             `;
                             resultsContainer.appendChild(card);
                         });
@@ -1605,6 +1611,43 @@
                 btn.disabled = false;
                 btn.innerText = "Escanear Red";
             }
+        }
+
+        // Probar/Identificar dispositivo: enciende → apaga → enciende rápidamente (flash)
+        async function probarDispositivo(ip, btnElement) {
+            if (!window.Capacitor || !Capacitor.Plugins.SocketBridge) return;
+
+            const originalText = btnElement.innerText;
+            btnElement.disabled = true;
+            btnElement.innerText = "⚡ ...";
+            btnElement.style.background = "rgba(0, 240, 255, 0.2)";
+            btnElement.style.color = "var(--accent-cyan)";
+            btnElement.style.borderColor = "var(--accent-cyan)";
+
+            const ON_CMD  = [0x71, 0x23, 0x0F, 0xA3];
+            const OFF_CMD = [0x71, 0x24, 0x0F, 0xA4];
+            const delay = ms => new Promise(r => setTimeout(r, ms));
+
+            try {
+                // Flash secuencia: ON → espera → OFF → espera → ON → espera → OFF → espera → ON
+                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: ON_CMD });
+                await delay(400);
+                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: OFF_CMD });
+                await delay(400);
+                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: ON_CMD });
+                await delay(400);
+                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: OFF_CMD });
+                await delay(400);
+                await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip, bytes: ON_CMD });
+            } catch (err) {
+                console.error("Error al probar dispositivo:", err);
+            }
+
+            btnElement.disabled = false;
+            btnElement.innerText = originalText;
+            btnElement.style.background = "rgba(171, 71, 188, 0.15)";
+            btnElement.style.color = "var(--accent-purple)";
+            btnElement.style.borderColor = "rgba(171, 71, 188, 0.3)";
         }
 
         function abrirModalRegistrar(ip) {
