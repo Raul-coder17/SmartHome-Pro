@@ -1382,8 +1382,8 @@
             const sByte = hsv.s;
             const vByte = hsv.v;
 
-            // writeMode = 0 para control de color
-            const commandBytes = construct25ByteMessage(0x00, hByte, sByte, vByte, 0, 0);
+            // writeMode = 0xA1 para control de color (COLORS)
+            const commandBytes = construct25ByteMessage(0xA1, hByte, sByte, vByte, 0, 0);
 
             if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
                 try {
@@ -1438,8 +1438,8 @@
                 whiteBrightness = Math.round((clampedSum / 255) * 100);
             }
 
-            // writeMode = 0
-            const commandBytes = construct25ByteMessage(0x00, 0, 0, 0, whiteTemp, whiteBrightness);
+            // writeMode = 0xB1 para control de blancos (WHITES)
+            const commandBytes = construct25ByteMessage(0xB1, 0, 0, 0, whiteTemp, whiteBrightness);
 
             if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
                 try {
