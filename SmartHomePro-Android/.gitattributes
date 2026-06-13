@@ -1,0 +1,10 @@
+# Force LF line endings for all text files (Unix style)
+* text=auto eol=lf
+
+# Force CRLF line endings for batch files (Windows style)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Force LF line endings for shell scripts and gradlew wrapper
+gradlew text eol=lf
+*.sh text eol=lf

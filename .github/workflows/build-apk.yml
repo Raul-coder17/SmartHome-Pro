@@ -45,6 +45,7 @@ jobs:
         else
           cd android
         fi
+        sed -i 's/\r$//' gradlew
         chmod +x gradlew
         ./gradlew assembleDebug
 
