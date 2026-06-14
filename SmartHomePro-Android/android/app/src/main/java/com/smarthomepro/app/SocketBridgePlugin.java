@@ -22,6 +22,7 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
@@ -167,7 +168,13 @@ public class SocketBridgePlugin extends Plugin {
                     byte[] receiveBuffer = new byte[1024];
                     long startTime = System.currentTimeMillis();
 
-                    while (System.currentTimeMillis() - startTime < timeout) {
+                    while (true) {
+                        long remaining = timeout - (System.currentTimeMillis() - startTime);
+                        if (remaining <= 0) {
+                            break;
+                        }
+                        socket.setSoTimeout((int) remaining);
+
                         DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
                         try {
                             socket.receive(receivePacket);
@@ -243,6 +250,26 @@ public class SocketBridgePlugin extends Plugin {
             return;
         }
 
+        // Sincronización en SharedPreferences
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("smart_home_alarms", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString(id + "_ip", ip);
+            editor.putString(id + "_action", action);
+            editor.putString(id + "_days", daysStr);
+            editor.putInt(id + "_hour", hour);
+            editor.putInt(id + "_minute", minute);
+            editor.putBoolean(id + "_active", true);
+
+            Set<String> ids = prefs.getStringSet("alarm_ids", new HashSet<String>());
+            Set<String> newIds = new HashSet<>(ids);
+            newIds.add(id);
+            editor.putStringSet("alarm_ids", newIds);
+            editor.apply();
+        } catch (Exception e) {
+            // Ignorar errores de guardado local, no bloquear registro de alarma
+        }
+
         Intent intent = new Intent(context, AlarmReceiver.class);
         intent.putExtra("id", id);
         intent.putExtra("ip", ip);
@@ -265,17 +292,30 @@ public class SocketBridgePlugin extends Plugin {
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
 
-        // Si la hora ya pasó hoy, agendar para mañana
+        // Si la hora ya pasó hoy (o es ahora mismo), agendar para mañana
         if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
             cal.add(Calendar.DAY_OF_YEAR, 1);
         }
 
         long triggerTime = cal.getTimeInMillis();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+                }
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
+        } catch (SecurityException e) {
+            // Fallback si el permiso de alarmas exactas fue revocado por el usuario
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
         }
 
         call.resolve();
@@ -290,6 +330,29 @@ public class SocketBridgePlugin extends Plugin {
         }
 
         Context context = getContext();
+        
+        // Sincronización en SharedPreferences
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("smart_home_alarms", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.remove(id + "_ip");
+            editor.remove(id + "_action");
+            editor.remove(id + "_days");
+            editor.remove(id + "_hour");
+            editor.remove(id + "_minute");
+            editor.remove(id + "_active");
+
+            Set<String> ids = prefs.getStringSet("alarm_ids", new HashSet<String>());
+            if (ids.contains(id)) {
+                Set<String> newIds = new HashSet<>(ids);
+                newIds.remove(id);
+                editor.putStringSet("alarm_ids", newIds);
+            }
+            editor.apply();
+        } catch (Exception e) {
+            // Ignorar errores de persistencia al cancelar
+        }
+
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) {
             call.reject("AlarmManager no disponible");

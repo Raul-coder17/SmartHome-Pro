@@ -31,9 +31,13 @@ public class AlarmReceiver extends BroadcastReceiver {
         // Adquirir WakeLock para que el celular no se duerma a mitad de la transmisión de red
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         PowerManager.WakeLock wakeLock = null;
-        if (pm != null) {
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmartHomePro:AlarmWakeLock");
-            wakeLock.acquire(3000); // Expirar en 3 segundos máximo
+        try {
+            if (pm != null) {
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmartHomePro:AlarmWakeLock");
+                wakeLock.acquire(3000); // Expirar en 3 segundos máximo
+            }
+        } catch (Exception e) {
+            // Ignorar fallas al adquirir WakeLock
         }
 
         final PowerManager.WakeLock finalWakeLock = wakeLock;
@@ -60,6 +64,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         }
 
         if (debeCorrerHoy) {
+            final BroadcastReceiver.PendingResult pendingResult = goAsync();
             // Enviar comando TCP en hilo secundario
             new Thread(new Runnable() {
                 @Override
@@ -86,17 +91,31 @@ public class AlarmReceiver extends BroadcastReceiver {
                                 socket.close();
                             } catch (Exception ignored) {}
                         }
-                        // Liberar WakeLock
-                        if (finalWakeLock != null && finalWakeLock.isHeld()) {
-                            finalWakeLock.release();
+                        // Liberar WakeLock de forma segura
+                        if (finalWakeLock != null) {
+                            try {
+                                if (finalWakeLock.isHeld()) {
+                                    finalWakeLock.release();
+                                }
+                            } catch (Exception ignored) {}
+                        }
+                        // Finalizar el procesamiento asíncrono del receptor para liberar el hilo del OS
+                        if (pendingResult != null) {
+                            try {
+                                pendingResult.finish();
+                            } catch (Exception ignored) {}
                         }
                     }
                 }
             }).start();
         } else {
             // Liberar WakeLock de inmediato si no corre hoy
-            if (finalWakeLock != null && finalWakeLock.isHeld()) {
-                finalWakeLock.release();
+            if (finalWakeLock != null) {
+                try {
+                    if (finalWakeLock.isHeld()) {
+                        finalWakeLock.release();
+                    }
+                } catch (Exception ignored) {}
             }
         }
 
@@ -124,20 +143,37 @@ public class AlarmReceiver extends BroadcastReceiver {
 
         PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, flags);
 
-        // Agendar para mañana a la misma hora
+        // Agendar para mañana a la misma hora (o el próximo día que toque a la misma hora)
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_YEAR, 1);
         cal.set(Calendar.HOUR_OF_DAY, hour);
         cal.set(Calendar.MINUTE, minute);
         cal.set(Calendar.SECOND, 0);
         cal.set(Calendar.MILLISECOND, 0);
 
+        // Si la hora calculada ya pasó hoy (o es ahora mismo), agendar para mañana
+        if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
+            cal.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
         long triggerTime = cal.getTimeInMillis();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+                }
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
+        } catch (SecurityException e) {
+            // Fallback si el permiso de alarmas exactas fue revocado por el usuario
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
         }
     }
 }

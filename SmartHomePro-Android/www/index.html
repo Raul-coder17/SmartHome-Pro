@@ -928,20 +928,55 @@
             }
         }
 
+        // Bucle recursivo para el polling silencioso (evita solapar ejecuciones y saturar hilos nativos)
+        async function loopPollingSilencioso() {
+            try {
+                await obtenerDispositivosSilencioso();
+            } catch (err) {
+                console.error("Error en loopPollingSilencioso:", err);
+            }
+            setTimeout(loopPollingSilencioso, 4000);
+        }
+
+        // Restaura alarmas activas en la capa nativa al arrancar la app (por coherencia)
+        async function restaurarProgramacionesNativas() {
+            if (!window.Capacitor || !Capacitor.Plugins.SocketBridge) return;
+            const activas = programaciones.filter(p => p.activo);
+            console.log(`Restaurando ${activas.length} alarmas activas en la capa nativa...`);
+            for (const p of activas) {
+                try {
+                    const [h, m] = p.hora.split(":").map(Number);
+                    await Capacitor.Plugins.SocketBridge.setAlarm({
+                        id: p.id,
+                        ip: p.ip,
+                        action: p.accion,
+                        hour: h,
+                        minute: m,
+                        days: p.dias
+                    });
+                } catch (err) {
+                    console.error(`Error al restaurar alarma nativa ${p.id}:`, err);
+                }
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", async () => {
             // Renderizar inmediatamente con datos locales
             obtenerDispositivos();
             obtenerColoresFavoritos();
             obtenerProgramaciones();
 
-            // Esperar a que el bridge nativo esté listo antes del polling
+            // Esperar a que el bridge nativo esté listo antes de operaciones nativas
             await waitForCapacitorBridge();
 
             // Consultar estados reales ahora que el bridge está disponible
             actualizarEstadosDispositivos();
 
-            // Polling de estados locales cada 4 segundos
-            setInterval(obtenerDispositivosSilencioso, 4000);
+            // Sincronizar programaciones locales con el AlarmManager del dispositivo
+            await restaurarProgramacionesNativas();
+
+            // Polling de estados de forma secuencial segura sin solapamientos
+            setTimeout(loopPollingSilencioso, 4000);
         });
 
         // Cargar y consultar estado inicial de dispositivos
@@ -1394,18 +1429,26 @@
             }
         }
 
-        // Throttle para el picker de color (150ms)
-        let colorTimer = null;
+        // Throttle por dispositivo para el picker de color (150ms) - garantiza enviar el color final seleccionado
+        let colorThrottleTimers = {};
+        let latestColors = {};
+
         function throttleControlColor(ip, hexColor) {
             const r = parseInt(hexColor.slice(1, 3), 16);
             const g = parseInt(hexColor.slice(3, 5), 16);
             const b = parseInt(hexColor.slice(5, 7), 16);
+            
             colorSeleccionadoRgb = { r, g, b };
+            latestColors[ip] = { r, g, b };
 
-            if (colorTimer) return;
-            colorTimer = setTimeout(() => {
-                cambiarColor(ip, r, g, b);
-                colorTimer = null;
+            if (colorThrottleTimers[ip]) return;
+
+            colorThrottleTimers[ip] = setTimeout(() => {
+                const c = latestColors[ip];
+                if (c) {
+                    cambiarColor(ip, c.r, c.g, c.b);
+                }
+                colorThrottleTimers[ip] = null;
             }, 150);
         }
 
