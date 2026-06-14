@@ -862,6 +862,10 @@
             dispositivos.forEach(dev => {
                 if (dev.failCount === undefined) dev.failCount = 0;
                 if (dev.nextPollTime === undefined) dev.nextPollTime = 0;
+                if (dev.mode === undefined) dev.mode = 'white';
+                if (dev.color === undefined) dev.color = { r: 255, g: 255, b: 255 };
+                if (dev.calidez === undefined) dev.calidez = 50;
+                if (dev.intensidad === undefined) dev.intensidad = 100;
             });
         }
 
@@ -1012,6 +1016,7 @@
         // Cargar y consultar estado inicial de dispositivos
         async function obtenerDispositivos() {
             dispositivos = getDispositivosLocal();
+            inicializarMetadatosDispositivos();
             renderizarDispositivos();
             actualizarEstadosDispositivos();
         }
@@ -1462,10 +1467,17 @@
 
         // Cambiar color RGB
         async function cambiarColor(ip, r, g, b) {
+            const dev = dispositivos.find(d => d.ip === ip);
+            if (dev) {
+                dev.mode = 'color';
+                dev.color = { r, g, b };
+                saveDispositivosLocal(dispositivos);
+            }
+
             const hsv = rgbToHsv(r, g, b);
             const hByte = Math.round(hsv.h / 2);
             const sByte = hsv.s;
-            const vByte = hsv.v;
+            const vByte = dev ? dev.intensidad : hsv.v;
 
             // writeMode = 0xA1 para control de color (COLORS)
             const commandBytes = construct25ByteMessage(0xA1, hByte, sByte, vByte, 0, 0);
@@ -1504,6 +1516,7 @@
 
         // Cambiar blancos
         async function cambiarBlanco(ip, calidez, intensidad) {
+            const dev = dispositivos.find(d => d.ip === ip);
             const card = document.querySelector(`[data-ip="${ip}"]`);
             if (!card) return;
 
@@ -1512,11 +1525,29 @@
             const calidezVal = calidez !== null ? Number(calidez) : Number(sliders[0].value);
             const intensidadVal = intensidad !== null ? Number(intensidad) : Number(sliders[1].value);
 
+            if (dev) {
+                dev.intensidad = intensidadVal;
+                if (calidez !== null) {
+                    dev.mode = 'white';
+                    dev.calidez = calidezVal;
+                }
+                saveDispositivosLocal(dispositivos);
+
+                // Si está en modo color y se cambió la intensidad, reenviamos el color con la nueva intensidad
+                if (dev.mode === 'color' && intensidad !== null) {
+                    await cambiarColor(ip, dev.color.r, dev.color.g, dev.color.b);
+                    return;
+                }
+            }
+
+            const currentCalidez = dev ? dev.calidez : calidezVal;
+            const currentIntensidad = dev ? dev.intensidad : intensidadVal;
+
             // Mapear calidez (0=frío total, 100=cálido total)
             // En el foco: warm_white vs cool_white
             // Total white = intensidad * 2.55 (escalado a 255)
-            const totalWhite = Math.round(intensidadVal * 2.55);
-            const warmRatio = calidezVal / 100;
+            const totalWhite = Math.round(currentIntensidad * 2.55);
+            const warmRatio = currentCalidez / 100;
             const coolRatio = 1 - warmRatio;
 
             const warmWhite = Math.round(totalWhite * warmRatio);
