@@ -812,14 +812,22 @@
 
     <header>
         <h1>SmartHome Pro</h1>
-        <button class="btn-scan" onclick="abrirModalEscanear()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-            Escanear
-        </button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn-scan" onclick="abrirModalEscanear()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Escanear
+            </button>
+            <button class="btn-scan" onclick="abrirModalAjustes()" title="Ajustes de Optimización">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+            </button>
+        </div>
     </header>
 
     <div class="container">
@@ -847,6 +855,45 @@
             <button class="btn-submit" id="scan-btn" onclick="escanearDispositivos()">Escanear Red</button>
             <div id="scan-results" class="scan-list">
                 <!-- Resultados del escaneo UDP -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE AJUSTES Y PERMISOS -->
+    <div class="modal" id="modal-ajustes">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Ajustes de Optimización</span>
+                <button class="modal-close" onclick="cerrarModalAjustes()">×</button>
+            </div>
+            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                Para garantizar que las tareas programadas y temporizadores se ejecuten con precisión cuando el celular esté bloqueado o con la pantalla apagada, es necesario configurar estos permisos de Android:
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+                <!-- Optimización de Batería -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 14px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; font-size: 15px;">🔋 Optimización de Batería</span>
+                        <span id="battery-status-badge" class="status-badge">Verificando...</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-secondary);">
+                        Permite que la app envíe señales de red local en segundo plano sin ser congelada por el sistema.
+                      </p>
+                    <button class="btn-submit" id="btn-battery-settings" onclick="configurarBateria()" style="padding: 10px; font-size: 13px;">Excluir del Ahorro</button>
+                </div>
+
+                <!-- Alertas / Alarmas Exactas -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 14px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600; font-size: 15px;">⏰ Alarmas Exactas</span>
+                        <span id="alarm-status-badge" class="status-badge">Verificando...</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-secondary);">
+                        Requerido para que las tareas se activen exactamente a la hora y minuto programados en Android 12+.
+                    </p>
+                    <button class="btn-submit" id="btn-alarm-settings" onclick="configurarAlarmasExactas()" style="padding: 10px; font-size: 13px;">Dar Permiso</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1054,6 +1101,106 @@
             setTimeout(loopPollingSilencioso, 4000);
         }
 
+        function getTimersActivosLocal() {
+            const data = localStorage.getItem('timers_activos');
+            return data ? JSON.parse(data) : {};
+        }
+
+        function saveTimersActivosLocal(timers) {
+            const toSave = {};
+            Object.keys(timers).forEach(ip => {
+                toSave[ip] = {
+                    id: timers[ip].id,
+                    endTime: timers[ip].endTime
+                };
+            });
+            localStorage.setItem('timers_activos', JSON.stringify(toSave));
+        }
+
+        function restaurarTimersLocales() {
+            const local = getTimersActivosLocal();
+            const ahora = Date.now();
+            timersActivos = {};
+
+            Object.keys(local).forEach(ip => {
+                const timerData = local[ip];
+                if (timerData && timerData.endTime > ahora) {
+                    const intervalId = setInterval(() => {
+                        actualizarDisplayTimer(ip);
+                    }, 1000);
+                    timersActivos[ip] = {
+                        id: timerData.id,
+                        endTime: timerData.endTime,
+                        intervalId: intervalId
+                    };
+                }
+            });
+            saveTimersActivosLocal(timersActivos);
+        }
+
+        function abrirModalAjustes() {
+            document.getElementById("modal-ajustes").style.display = "flex";
+            actualizarEstadosAjustes();
+        }
+
+        function cerrarModalAjustes() {
+            document.getElementById("modal-ajustes").style.display = "none";
+        }
+
+        async function actualizarEstadosAjustes() {
+            if (!window.Capacitor || !Capacitor.Plugins.SocketBridge) {
+                document.getElementById("battery-status-badge").className = "status-badge offline";
+                document.getElementById("battery-status-badge").innerText = "SIN CAPACITOR";
+                document.getElementById("alarm-status-badge").className = "status-badge offline";
+                document.getElementById("alarm-status-badge").innerText = "SIN CAPACITOR";
+                return;
+            }
+
+            try {
+                const battRes = await Capacitor.Plugins.SocketBridge.isBatteryOptimizationIgnoring();
+                const batteryBadge = document.getElementById("battery-status-badge");
+                const batteryBtn = document.getElementById("btn-battery-settings");
+                if (battRes.ignoring) {
+                    batteryBadge.className = "status-badge online";
+                    batteryBadge.innerText = "PERMITIDO";
+                    batteryBtn.style.display = "none";
+                } else {
+                    batteryBadge.className = "status-badge offline";
+                    batteryBadge.innerText = "RESTRINGIDO";
+                    batteryBtn.style.display = "block";
+                }
+
+                const alarmRes = await Capacitor.Plugins.SocketBridge.canScheduleExactAlarms();
+                const alarmBadge = document.getElementById("alarm-status-badge");
+                const alarmBtn = document.getElementById("btn-alarm-settings");
+                if (alarmRes.canSchedule) {
+                    alarmBadge.className = "status-badge online";
+                    alarmBadge.innerText = "PERMITIDO";
+                    alarmBtn.style.display = "none";
+                } else {
+                    alarmBadge.className = "status-badge offline";
+                    alarmBadge.innerText = "RESTRINGIDO";
+                    alarmBtn.style.display = "block";
+                }
+            } catch (err) {
+                console.error("Error al actualizar estados de ajustes:", err);
+            }
+        }
+
+        async function configurarBateria() {
+            if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
+                await Capacitor.Plugins.SocketBridge.requestIgnoreBatteryOptimizations();
+                setTimeout(actualizarEstadosAjustes, 1500);
+            }
+        }
+
+        async function configurarAlarmasExactas() {
+            if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
+                await Capacitor.Plugins.SocketBridge.requestExactAlarmPermission();
+                setTimeout(actualizarEstadosAjustes, 1500);
+            }
+        }
+
         // Restaura alarmas activas en la capa nativa al arrancar la app (por coherencia)
         async function restaurarProgramacionesNativas() {
             if (!window.Capacitor || !Capacitor.Plugins.SocketBridge) return;
@@ -1081,6 +1228,9 @@
             obtenerDispositivos();
 
             obtenerProgramaciones();
+
+            // Restaurar visualización de temporizadores locales
+            restaurarTimersLocales();
 
             // Esperar a que el bridge nativo esté listo antes de operaciones nativas
             await waitForCapacitorBridge();
@@ -1372,12 +1522,26 @@
                 alternarEncendido(ip, false);
             }
 
-            const endTime = Date.now() + (minutos * 60 * 1000);
+            const timerId = "timer_" + ip.replace(/\./g, '_') + "_" + Date.now();
+            const durationMs = minutos * 60 * 1000;
+            const endTime = Date.now() + durationMs;
+
+            // Registrar alarma nativa
+            if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
+                Capacitor.Plugins.SocketBridge.setTimer({
+                    id: timerId,
+                    ip: ip,
+                    action: "apagar",
+                    triggerTime: endTime
+                }).catch(err => console.error("Error setting native timer:", err));
+            }
+
             const intervalId = setInterval(() => {
                 actualizarDisplayTimer(ip);
             }, 1000);
 
-            timersActivos[ip] = { intervalId, endTime };
+            timersActivos[ip] = { id: timerId, intervalId, endTime };
+            saveTimersActivosLocal(timersActivos);
 
             // Renderizar display del timer inmediatamente
             renderizarTimerActivo(ip);
@@ -1403,7 +1567,18 @@
             const timer = timersActivos[ip];
             if (timer) {
                 clearInterval(timer.intervalId);
+
+                // Cancelar alarma nativa
+                if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
+                    try {
+                        await Capacitor.Plugins.SocketBridge.cancelAlarm({ id: timer.id });
+                    } catch (err) {
+                        console.error("Error cancelling native timer:", err);
+                    }
+                }
+
                 delete timersActivos[ip];
+                saveTimersActivosLocal(timersActivos);
             }
 
             if (!silencioso) {
@@ -1427,6 +1602,7 @@
                 // Tiempo agotado: apagar
                 clearInterval(timer.intervalId);
                 delete timersActivos[ip];
+                saveTimersActivosLocal(timersActivos);
                 apagarPorTimer(ip);
                 return;
             }

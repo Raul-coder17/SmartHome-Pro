@@ -116,8 +116,28 @@ public class AlarmReceiver extends BroadcastReceiver {
             }
         }
 
-        // Volver a agendar para mañana de forma exacta (re-scheduling recurrente)
-        agendarSiguienteDia(context, id, ip, action, daysStr, hour, minute);
+        if ("once".equals(daysStr)) {
+            try {
+                android.content.SharedPreferences prefs = context.getSharedPreferences("smart_home_alarms", Context.MODE_PRIVATE);
+                android.content.SharedPreferences.Editor editor = prefs.edit();
+                editor.remove(id + "_ip");
+                editor.remove(id + "_action");
+                editor.remove(id + "_days");
+                editor.remove(id + "_triggerTime");
+                editor.remove(id + "_active");
+
+                java.util.Set<String> ids = prefs.getStringSet("alarm_ids", new java.util.HashSet<String>());
+                if (ids != null && ids.contains(id)) {
+                    java.util.Set<String> newIds = new java.util.HashSet<>(ids);
+                    newIds.remove(id);
+                    editor.putStringSet("alarm_ids", newIds);
+                }
+                editor.apply();
+            } catch (Exception ignored) {}
+        } else {
+            // Volver a agendar para mañana de forma exacta (re-scheduling recurrente)
+            agendarSiguienteDia(context, id, ip, action, daysStr, hour, minute);
+        }
     }
 
     private void agendarSiguienteDia(Context context, String id, String ip, String action, String daysStr, int hour, int minute) {

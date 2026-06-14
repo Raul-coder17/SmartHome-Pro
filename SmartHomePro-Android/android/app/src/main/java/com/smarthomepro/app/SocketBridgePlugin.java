@@ -27,6 +27,10 @@ import android.os.Build;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import android.os.PowerManager;
+import android.provider.Settings;
+import android.net.Uri;
+
 
 @CapacitorPlugin(name = "SocketBridge")
 public class SocketBridgePlugin extends Plugin {
@@ -434,6 +438,153 @@ public class SocketBridgePlugin extends Plugin {
             pendingIntent.cancel();
         }
 
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void setTimer(PluginCall call) {
+        String id = call.getString("id");
+        String ip = call.getString("ip");
+        String action = call.getString("action");
+        Long triggerTime = call.getLong("triggerTime");
+
+        if (id == null || ip == null || action == null || triggerTime == null) {
+            call.reject("Parámetros incompletos para el temporizador");
+            return;
+        }
+
+        Context context = getContext();
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager == null) {
+            call.reject("AlarmManager no disponible");
+            return;
+        }
+
+        // Guardar en SharedPreferences
+        try {
+            SharedPreferences prefs = context.getSharedPreferences("smart_home_alarms", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString(id + "_ip", ip);
+            editor.putString(id + "_action", action);
+            editor.putString(id + "_days", "once");
+            editor.putLong(id + "_triggerTime", triggerTime);
+            editor.putBoolean(id + "_active", true);
+
+            Set<String> ids = prefs.getStringSet("alarm_ids", new HashSet<String>());
+            Set<String> newIds = new HashSet<>(ids);
+            newIds.add(id);
+            editor.putStringSet("alarm_ids", newIds);
+            editor.apply();
+        } catch (Exception e) {
+            // Ignorar errores de guardado local
+        }
+
+        Intent intent = new Intent(context, AlarmReceiver.class);
+        intent.putExtra("id", id);
+        intent.putExtra("ip", ip);
+        intent.putExtra("action", action);
+        intent.putExtra("days", "once");
+
+        int requestCode = id.hashCode();
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            flags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, intent, flags);
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+                } else {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+                }
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
+        } catch (SecurityException e) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            } else {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
+        }
+
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void isBatteryOptimizationIgnoring(PluginCall call) {
+        Context context = getContext();
+        boolean ignoring = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            if (pm != null) {
+                ignoring = pm.isIgnoringBatteryOptimizations(context.getPackageName());
+            }
+        }
+        JSObject result = new JSObject();
+        result.put("ignoring", ignoring);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void requestIgnoreBatteryOptimizations(PluginCall call) {
+        Context context = getContext();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+            if (pm != null && !pm.isIgnoringBatteryOptimizations(context.getPackageName())) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } catch (Exception e) {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                        intent.setData(Uri.parse("package:" + context.getPackageName()));
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        context.startActivity(intent);
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void canScheduleExactAlarms(PluginCall call) {
+        Context context = getContext();
+        boolean canSchedule = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            if (alarmManager != null) {
+                canSchedule = alarmManager.canScheduleExactAlarms();
+            }
+        }
+        JSObject result = new JSObject();
+        result.put("canSchedule", canSchedule);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void requestExactAlarmPermission(PluginCall call) {
+        Context context = getContext();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                intent.setData(Uri.parse("package:" + context.getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            } catch (Exception e) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    intent.setData(Uri.parse("package:" + context.getPackageName()));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    context.startActivity(intent);
+                } catch (Exception ignored) {}
+            }
+        }
         call.resolve();
     }
 }

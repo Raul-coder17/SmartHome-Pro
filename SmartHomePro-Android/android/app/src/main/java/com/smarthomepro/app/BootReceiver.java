@@ -30,18 +30,53 @@ public class BootReceiver extends BroadcastReceiver {
                     String ip = prefs.getString(id + "_ip", null);
                     String action = prefs.getString(id + "_action", null);
                     String daysStr = prefs.getString(id + "_days", "");
-                    int hour = prefs.getInt(id + "_hour", -1);
-                    int minute = prefs.getInt(id + "_minute", -1);
 
-                    if (ip == null || action == null || hour == -1 || minute == -1) continue;
+                    if (ip == null || action == null) continue;
 
                     Intent alarmIntent = new Intent(context, AlarmReceiver.class);
                     alarmIntent.putExtra("id", id);
                     alarmIntent.putExtra("ip", ip);
                     alarmIntent.putExtra("action", action);
                     alarmIntent.putExtra("days", daysStr);
-                    alarmIntent.putExtra("hour", hour);
-                    alarmIntent.putExtra("minute", minute);
+
+                    long triggerTime;
+                    if ("once".equals(daysStr)) {
+                        triggerTime = prefs.getLong(id + "_triggerTime", -1);
+                        if (triggerTime == -1 || triggerTime <= System.currentTimeMillis()) {
+                            // Limpiar alarma expirada
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.remove(id + "_ip");
+                            editor.remove(id + "_action");
+                            editor.remove(id + "_days");
+                            editor.remove(id + "_triggerTime");
+                            editor.remove(id + "_active");
+                            Set<String> newIds = new HashSet<>(ids);
+                            newIds.remove(id);
+                            editor.putStringSet("alarm_ids", newIds);
+                            editor.apply();
+                            continue;
+                        }
+                    } else {
+                        int hour = prefs.getInt(id + "_hour", -1);
+                        int minute = prefs.getInt(id + "_minute", -1);
+                        if (hour == -1 || minute == -1) continue;
+
+                        alarmIntent.putExtra("hour", hour);
+                        alarmIntent.putExtra("minute", minute);
+
+                        Calendar cal = Calendar.getInstance();
+                        cal.set(Calendar.HOUR_OF_DAY, hour);
+                        cal.set(Calendar.MINUTE, minute);
+                        cal.set(Calendar.SECOND, 0);
+                        cal.set(Calendar.MILLISECOND, 0);
+
+                        // Si la hora ya pasó hoy (o es ahora mismo), agendar para mañana
+                        if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
+                            cal.add(Calendar.DAY_OF_YEAR, 1);
+                        }
+
+                        triggerTime = cal.getTimeInMillis();
+                    }
 
                     int requestCode = id.hashCode();
                     int flags = PendingIntent.FLAG_UPDATE_CURRENT;
@@ -50,19 +85,6 @@ public class BootReceiver extends BroadcastReceiver {
                     }
 
                     PendingIntent pendingIntent = PendingIntent.getBroadcast(context, requestCode, alarmIntent, flags);
-
-                    Calendar cal = Calendar.getInstance();
-                    cal.set(Calendar.HOUR_OF_DAY, hour);
-                    cal.set(Calendar.MINUTE, minute);
-                    cal.set(Calendar.SECOND, 0);
-                    cal.set(Calendar.MILLISECOND, 0);
-
-                    // Si la hora ya pasó hoy (o es ahora mismo), agendar para mañana
-                    if (cal.getTimeInMillis() <= System.currentTimeMillis()) {
-                        cal.add(Calendar.DAY_OF_YEAR, 1);
-                    }
-
-                    long triggerTime = cal.getTimeInMillis();
 
                     try {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
