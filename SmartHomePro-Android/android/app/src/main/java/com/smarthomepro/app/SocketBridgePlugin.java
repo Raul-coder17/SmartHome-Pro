@@ -96,8 +96,8 @@ public class SocketBridgePlugin extends Plugin {
                 synchronized (getLockForIp(ip)) {
                     Socket socket = null;
                     try {
-                        // Conexión con reintentos para mitigar colisiones
-                        socket = connectWithRetry(ip, 5577, 1000, 3);
+                        // Conexión con reintentos para mitigar colisiones (1.5s timeout, 2 intentos)
+                        socket = connectWithRetry(ip, 5577, 1500, 2);
 
                         byte[] data = new byte[bytesArray.length()];
                         for (int i = 0; i < bytesArray.length(); i++) {
@@ -156,8 +156,8 @@ public class SocketBridgePlugin extends Plugin {
                     Socket socket = null;
                     JSObject result = new JSObject();
                     try {
-                        // Consultar estado con reintentos para mayor fiabilidad
-                        socket = connectWithRetry(ip, 5577, 1000, 3);
+                        // Consultar estado con reintentos para mayor fiabilidad (2.0s timeout, 2 intentos)
+                        socket = connectWithRetry(ip, 5577, 2000, 2);
 
                         // Envía comando de consulta de estado [0x81, 0x8a, 0x8b, 0x96]
                         byte[] query = new byte[]{(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};

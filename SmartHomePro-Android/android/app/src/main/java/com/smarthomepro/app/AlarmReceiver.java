@@ -71,9 +71,8 @@ public class AlarmReceiver extends BroadcastReceiver {
                 public void run() {
                     Socket socket = null;
                     try {
-                        socket = connectWithRetry(ip, 5577, 1000, 3);
+                        socket = connectWithRetry(ip, 5577, 1500, 2);
 
-                        // Comando bytes ON/OFF
                         byte[] command = action.equals("encender")
                                 ? new byte[]{(byte) 0x71, (byte) 0x23, (byte) 0x0f, (byte) 0xa3}
                                 : new byte[]{(byte) 0x71, (byte) 0x24, (byte) 0x0f, (byte) 0xa4};
