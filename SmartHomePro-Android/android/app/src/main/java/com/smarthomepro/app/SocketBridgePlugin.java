@@ -32,6 +32,39 @@ import java.util.concurrent.Executors;
 public class SocketBridgePlugin extends Plugin {
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
+    private static final java.util.concurrent.ConcurrentHashMap<String, Object> ipLocks = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static Object getLockForIp(String ip) {
+        return ipLocks.computeIfAbsent(ip, k -> new Object());
+    }
+
+    private Socket connectWithRetry(String ip, int port, int timeoutMs, int maxAttempts) throws Exception {
+        Socket socket = null;
+        int baseDelay = 100;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                socket = new Socket();
+                socket.connect(new InetSocketAddress(ip, port), timeoutMs);
+                socket.setSoTimeout(timeoutMs);
+                return socket;
+            } catch (Exception e) {
+                if (socket != null) {
+                    try { socket.close(); } catch (Exception ignored) {}
+                }
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+                int delay = (baseDelay * attempt) + (int)(Math.random() * 50);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new Exception("Conexión interrumpida");
+                }
+            }
+        }
+        throw new Exception("No se pudo conectar");
+    }
 
     @PluginMethod
     public void sendTcpCommand(PluginCall call) {
@@ -43,33 +76,52 @@ public class SocketBridgePlugin extends Plugin {
             return;
         }
 
+        // Validación de formato IP (IPv4 estándar)
+        if (!ip.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$")) {
+            call.reject("Formato de IP inválido o malformado");
+            return;
+        }
+
+        // Validación de tamaño seguro para evitar OutOfMemory o DoS de bombilla
+        if (bytesArray.length() == 0 || bytesArray.length() > 32) {
+            call.reject("Tamaño de payload no permitido (debe ser entre 1 y 32 bytes)");
+            return;
+        }
+
         // Ejecutar en hilo secundario para no bloquear el hilo principal de la UI
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                Socket socket = null;
-                try {
-                    socket = new Socket();
-                    socket.connect(new InetSocketAddress(ip, 5577), 1500);
-                    socket.setSoTimeout(1500);
+                // Sincronizar por IP para encolar comandos concurrentes
+                synchronized (getLockForIp(ip)) {
+                    Socket socket = null;
+                    try {
+                        // Conexión con reintentos para mitigar colisiones
+                        socket = connectWithRetry(ip, 5577, 1000, 3);
 
-                    byte[] data = new byte[bytesArray.length()];
-                    for (int i = 0; i < bytesArray.length(); i++) {
-                        data[i] = (byte) bytesArray.getInt(i);
-                    }
+                        byte[] data = new byte[bytesArray.length()];
+                        for (int i = 0; i < bytesArray.length(); i++) {
+                            int bVal = bytesArray.getInt(i);
+                            if (bVal < 0 || bVal > 255) {
+                                call.reject("Byte fuera de rango en la posición " + i + ": " + bVal);
+                                return;
+                            }
+                            data[i] = (byte) bVal;
+                        }
 
-                    OutputStream out = socket.getOutputStream();
-                    out.write(data);
-                    out.flush();
+                        OutputStream out = socket.getOutputStream();
+                        out.write(data);
+                        out.flush();
 
-                    call.resolve();
-                } catch (Exception e) {
-                    call.reject("Error al enviar comando TCP: " + e.getMessage());
-                } finally {
-                    if (socket != null) {
-                        try {
-                            socket.close();
-                        } catch (Exception ignored) {}
+                        call.resolve();
+                    } catch (Exception e) {
+                        call.reject("Error al enviar comando TCP: " + e.getMessage());
+                    } finally {
+                        if (socket != null) {
+                            try {
+                                socket.close();
+                            } catch (Exception ignored) {}
+                        }
                     }
                 }
             }
@@ -88,52 +140,62 @@ public class SocketBridgePlugin extends Plugin {
             return;
         }
 
+        if (!ip.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$")) {
+            JSObject result = new JSObject();
+            result.put("online", false);
+            result.put("encendido", false);
+            call.resolve(result);
+            return;
+        }
+
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                Socket socket = null;
-                JSObject result = new JSObject();
-                try {
-                    socket = new Socket();
-                    socket.connect(new InetSocketAddress(ip, 5577), 2500);
-                    socket.setSoTimeout(2500);
+                // Sincronizar por IP para evitar conflictos de lectura simultáneos
+                synchronized (getLockForIp(ip)) {
+                    Socket socket = null;
+                    JSObject result = new JSObject();
+                    try {
+                        // Consultar estado con reintentos para mayor fiabilidad
+                        socket = connectWithRetry(ip, 5577, 1000, 3);
 
-                    // Envía comando de consulta de estado [0x81, 0x8a, 0x8b, 0x96]
-                    byte[] query = new byte[]{(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};
-                    OutputStream out = socket.getOutputStream();
-                    out.write(query);
-                    out.flush();
+                        // Envía comando de consulta de estado [0x81, 0x8a, 0x8b, 0x96]
+                        byte[] query = new byte[]{(byte) 0x81, (byte) 0x8a, (byte) 0x8b, (byte) 0x96};
+                        OutputStream out = socket.getOutputStream();
+                        out.write(query);
+                        out.flush();
 
-                    InputStream in = socket.getInputStream();
-                    byte[] buffer = new byte[32];
-                    int totalRead = 0;
-                    while (totalRead < 4) {
-                        int read = in.read(buffer, totalRead, buffer.length - totalRead);
-                        if (read == -1) {
-                            break;
+                        InputStream in = socket.getInputStream();
+                        byte[] buffer = new byte[32];
+                        int totalRead = 0;
+                        while (totalRead < 4) {
+                            int read = in.read(buffer, totalRead, buffer.length - totalRead);
+                            if (read == -1) {
+                                break;
+                            }
+                            totalRead += read;
                         }
-                        totalRead += read;
-                    }
 
-                    if (totalRead >= 4 && (buffer[0] & 0xFF) == 0x81) {
-                        int powerByte = buffer[2] & 0xFF;
-                        boolean isOn = (powerByte == 0x23); // 0x23 = ON, 0x24 = OFF
-                        result.put("online", true);
-                        result.put("encendido", isOn);
-                    } else {
+                        if (totalRead >= 4 && (buffer[0] & 0xFF) == 0x81) {
+                            int powerByte = buffer[2] & 0xFF;
+                            boolean isOn = (powerByte == 0x23); // 0x23 = ON, 0x24 = OFF
+                            result.put("online", true);
+                            result.put("encendido", isOn);
+                        } else {
+                            result.put("online", false);
+                            result.put("encendido", false);
+                        }
+                    } catch (Exception e) {
                         result.put("online", false);
                         result.put("encendido", false);
+                    } finally {
+                        if (socket != null) {
+                            try {
+                                socket.close();
+                            } catch (Exception ignored) {}
+                        }
+                        call.resolve(result);
                     }
-                } catch (Exception e) {
-                    result.put("online", false);
-                    result.put("encendido", false);
-                } finally {
-                    if (socket != null) {
-                        try {
-                            socket.close();
-                        } catch (Exception ignored) {}
-                    }
-                    call.resolve(result);
                 }
             }
         });

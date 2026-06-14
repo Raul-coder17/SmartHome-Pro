@@ -836,9 +836,39 @@
             return sum & 0xFF;
         }
 
-        function getNextCounter() {
-            messageCounter = (messageCounter + 1) % 256;
-            return messageCounter;
+        function clampByte(val, def = 0) {
+            const parsed = parseInt(val, 10);
+            if (isNaN(parsed)) return def;
+            return Math.max(0, Math.min(255, parsed));
+        }
+
+        async function procesarEnLotes(elementos, maxConcurrente, callback) {
+            const resultados = [];
+            const ejecutando = new Set();
+            for (const elemento of elementos) {
+                const p = Promise.resolve().then(() => callback(elemento));
+                resultados.push(p);
+                ejecutando.add(p);
+                const cleanOk = () => ejecutando.delete(p);
+                p.then(cleanOk, cleanOk);
+                if (ejecutando.size >= maxConcurrente) {
+                    await Promise.race(ejecutando);
+                }
+            }
+            return Promise.all(resultados);
+        }
+
+        function inicializarMetadatosDispositivos() {
+            dispositivos.forEach(dev => {
+                if (dev.failCount === undefined) dev.failCount = 0;
+                if (dev.nextPollTime === undefined) dev.nextPollTime = 0;
+            });
+        }
+
+        function aplicarBackoff(dev) {
+            dev.failCount = (dev.failCount || 0) + 1;
+            const segundosDeEspera = dev.failCount > 2 ? 60 : 12;
+            dev.nextPollTime = Date.now() + (segundosDeEspera * 1000);
         }
 
         // Convierte RGB a HSV igual que Python colorsys
@@ -868,9 +898,9 @@
         // Genera la trama de bytes para el protocolo de 25 bytes
         function construct25ByteMessage(writeMode, h, s, v, temp, brightness) {
             const inner = [
-                0xE0, 0x01, 0x00, writeMode,
-                h, s, v,
-                temp, brightness,
+                0xE0, 0x01, 0x00, clampByte(writeMode),
+                clampByte(h), clampByte(s), clampByte(v),
+                clampByte(temp), clampByte(brightness),
                 0x00, 0x00, 0x14, 0x00, 0x00
             ];
             const outer = [
@@ -881,7 +911,7 @@
                 ...inner
             ];
             const csum = calculateChecksum(outer);
-            outer.push(csum);
+            outer.push(clampByte(csum));
             return outer;
         }
 
@@ -986,38 +1016,59 @@
             actualizarEstadosDispositivos();
         }
 
-        // Consulta en paralelo el estado real de los dispositivos registrados
+        // Consulta en paralelo con concurrencia controlada el estado real
         async function actualizarEstadosDispositivos() {
             if (!window.Capacitor || !Capacitor.Plugins.SocketBridge) return;
-            const promesas = dispositivos.map(async (dev) => {
+            inicializarMetadatosDispositivos();
+            
+            await procesarEnLotes(dispositivos, 4, async (dev) => {
                 try {
                     const status = await Capacitor.Plugins.SocketBridge.checkDeviceStatus({ ip: dev.ip });
                     dev.online = status.online;
                     dev.encendido = status.encendido;
+                    if (dev.online) {
+                        dev.failCount = 0;
+                        dev.nextPollTime = 0;
+                    } else {
+                        aplicarBackoff(dev);
+                    }
                 } catch (err) {
                     dev.online = false;
                     dev.encendido = false;
+                    aplicarBackoff(dev);
                 }
             });
-            await Promise.all(promesas);
             renderizarDispositivos();
         }
 
-        // Polling silencioso para refrescar estados sin redibujar DOM
+        // Polling silencioso para refrescar estados sin redibujar DOM, con concurrencia limitada y backoff
         async function obtenerDispositivosSilencioso() {
             if (!window.Capacitor || !Capacitor.Plugins.SocketBridge) return;
             
-            const promesas = dispositivos.map(async (dev) => {
+            const ahora = Date.now();
+            inicializarMetadatosDispositivos();
+
+            // Filtrar dispositivos que necesitan polling en este ciclo
+            const dispositivosAPollear = dispositivos.filter(dev => ahora >= dev.nextPollTime);
+            if (dispositivosAPollear.length === 0) return;
+
+            await procesarEnLotes(dispositivosAPollear, 4, async (dev) => {
                 try {
                     const status = await Capacitor.Plugins.SocketBridge.checkDeviceStatus({ ip: dev.ip });
                     dev.online = status.online;
                     dev.encendido = status.encendido;
+                    if (dev.online) {
+                        dev.failCount = 0;
+                        dev.nextPollTime = 0;
+                    } else {
+                        aplicarBackoff(dev);
+                    }
                 } catch (err) {
                     dev.online = false;
                     dev.encendido = false;
+                    aplicarBackoff(dev);
                 }
             });
-            await Promise.all(promesas);
 
             dispositivos.forEach(dev => {
                 const card = document.querySelector(`[data-ip="${dev.ip}"]`);
@@ -1389,7 +1440,7 @@
             }
         }
 
-        // Control Global (ON/OFF para todos)
+        // Control Global (ON/OFF para todos) con concurrencia controlada
         async function controlGlobal(encender) {
             const commandBytes = encender 
                 ? [0x71, 0x23, 0x0F, 0xA3] 
@@ -1399,13 +1450,12 @@
             if (onlineDevices.length === 0) return;
 
             if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
-                const promesas = onlineDevices.map(async (dev) => {
+                await procesarEnLotes(onlineDevices, 4, async (dev) => {
                     try {
                         await Capacitor.Plugins.SocketBridge.sendTcpCommand({ ip: dev.ip, bytes: commandBytes });
                         dev.encendido = encender;
                     } catch (err) {}
                 });
-                await Promise.all(promesas);
                 renderizarDispositivos();
             }
         }

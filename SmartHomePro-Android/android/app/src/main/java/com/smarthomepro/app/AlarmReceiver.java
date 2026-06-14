@@ -34,7 +34,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         try {
             if (pm != null) {
                 wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmartHomePro:AlarmWakeLock");
-                wakeLock.acquire(3000); // Expirar en 3 segundos máximo
+                wakeLock.acquire(5000); // Expirar en 5 segundos máximo (margen seguro para reintentos TCP)
             }
         } catch (Exception e) {
             // Ignorar fallas al adquirir WakeLock
@@ -71,9 +71,7 @@ public class AlarmReceiver extends BroadcastReceiver {
                 public void run() {
                     Socket socket = null;
                     try {
-                        socket = new Socket();
-                        socket.connect(new InetSocketAddress(ip, 5577), 2000);
-                        socket.setSoTimeout(2000);
+                        socket = connectWithRetry(ip, 5577, 1000, 3);
 
                         // Comando bytes ON/OFF
                         byte[] command = action.equals("encender")
@@ -175,5 +173,33 @@ public class AlarmReceiver extends BroadcastReceiver {
                 alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
             }
         }
+    }
+
+    private Socket connectWithRetry(String ip, int port, int timeoutMs, int maxAttempts) throws Exception {
+        Socket socket = null;
+        int baseDelay = 100;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                socket = new Socket();
+                socket.connect(new InetSocketAddress(ip, port), timeoutMs);
+                socket.setSoTimeout(timeoutMs);
+                return socket;
+            } catch (Exception e) {
+                if (socket != null) {
+                    try { socket.close(); } catch (Exception ignored) {}
+                }
+                if (attempt == maxAttempts) {
+                    throw e;
+                }
+                int delay = (baseDelay * attempt) + (int)(Math.random() * 50);
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new Exception("Conexión interrumpida");
+                }
+            }
+        }
+        throw new Exception("No se pudo conectar");
     }
 }
