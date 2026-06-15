@@ -56,6 +56,7 @@ Recientemente se completó una auditoría y corrección de 8 fallos de estabilid
 6. **Bug 6 (Carrera en reiniciar timer):** Se transformó `iniciarTimer` en asíncrono para esperar (`await`) la finalización nativa del borrado del temporizador anterior antes de agendar el nuevo.
 7. **Bug 7 (Doble Polling):** Se optimizó la carga inicial removiendo consultas TCP duplicadas al iniciar la app, reduciendo el tráfico inalámbrico a la mitad.
 8. **Bug 8 (Carga de plugin Capacitor):** Se actualizó la detección del bridge nativo para esperar el registro completo del plugin `SocketBridge` antes de habilitar los botones de la interfaz gráfica.
+9. **Corrección del Escáner de Dispositivos (UDP Broadcast):** Se resolvió un fallo que impedía descubrir dispositivos en Android mediante la adquisición del permiso y bloqueo `CHANGE_WIFI_MULTICAST_STATE` / `MulticastLock`, y forzando la vinculación del socket UDP a la interfaz de red WiFi activa en lugar del canal celular.
 
 ---
 

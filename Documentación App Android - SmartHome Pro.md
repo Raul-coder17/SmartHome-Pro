@@ -68,9 +68,10 @@ La comunicación nativa con los dispositivos Surplife está implementada en [Soc
 ### A. Descubrimiento de Dispositivos (UDP Broadcast)
 La búsqueda automática de dispositivos en la subred se realiza a través del método `scanNetwork`:
 
-1.  Se inicializa un socket de datagramas UDP (`DatagramSocket`) configurado en modo difusión (`setBroadcast(true)`) con un tiempo límite de respuesta (`soTimeout`).
-2.  Se envía el payload de búsqueda estándar: `b"HF-A11ASSISTHREAD"` a la IP de difusión global `255.255.255.255` a través del puerto **`48899`**.
-3.  Los controladores WiFi compatibles responden enviando un datagrama UDP en formato CSV con su información:
+1.  **Adquisición de MulticastLock:** Se adquiere el bloqueo `WifiManager.MulticastLock` para forzar al hardware del teléfono a aceptar paquetes UDP de tipo broadcast/multicast (los cuales Android filtra por defecto para ahorrar batería).
+2.  **Vínculo de Interfaz (Bind):** Se obtiene la IP de la interfaz WiFi activa usando `WifiManager.getConnectionInfo().getIpAddress()`. El `DatagramSocket` se enlaza directamente a esta dirección para evitar que Android envíe el tráfico por la red de datos móviles cuando ambos canales están activos.
+3.  **Envío de Difusión Doble:** Se envía la trama de búsqueda estándar `b"HF-A11ASSISTHREAD"` en paralelo a la dirección de broadcast dirigida calculada de la subred local (ej. `192.168.1.255`) y de respaldo a la IP global `255.255.255.255`, ambas a través del puerto **`48899`**.
+4.  Los controladores WiFi compatibles responden enviando un datagrama UDP en formato CSV con su información:
     $$\text{Formato: } \text{IP, Dirección MAC, Modelo de módulo WiFi}$$
     *(Ejemplo: `192.168.1.15,ACC8E0123456,HF-LPB100`)*
 4.  El plugin nativo filtra los duplicados y las respuestas de confirmación genéricas (`+ok`) y devuelve un arreglo JSON estructurado al WebView.
