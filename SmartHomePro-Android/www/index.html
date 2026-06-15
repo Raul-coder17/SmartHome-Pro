@@ -2153,15 +2153,22 @@
 
             if (window.Capacitor && Capacitor.Plugins.SocketBridge) {
                 try {
-                    const res = await Capacitor.Plugins.SocketBridge.scanNetwork({ timeout: 2500 });
+                    const res = await Capacitor.Plugins.SocketBridge.scanNetwork({ timeout: 3000 });
                     const list = res.devices || [];
 
                     resultsContainer.innerHTML = "";
 
-                    if (list.length === 0) {
+                    if (res.scanError) {
+                        resultsContainer.innerHTML = `
+                            <div style="text-align: center; padding: 20px 0; color: var(--accent-red); font-size: 13px;">
+                                <p style="margin-bottom: 6px;">Error de red al escanear:</p>
+                                <code style="font-size: 11px; opacity: 0.8;">${escHTML(res.scanError)}</code>
+                            </div>
+                        `;
+                    } else if (list.length === 0) {
                         resultsContainer.innerHTML = `
                             <div style="text-align: center; padding: 20px 0; color: var(--text-secondary); font-size: 14px;">
-                                No se encontraron nuevos dispositivos. Verifica tu conexión WiFi.
+                                No se encontraron dispositivos. Verifica que estés en la misma red WiFi que los dispositivos.
                             </div>
                         `;
                     } else {

@@ -30,6 +30,8 @@ import java.util.concurrent.Executors;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.net.DhcpInfo;
 
 
 @CapacitorPlugin(name = "SocketBridge")
@@ -213,40 +215,90 @@ public class SocketBridgePlugin extends Plugin {
             @Override
             public void run() {
                 DatagramSocket socket = null;
+                WifiManager.MulticastLock multicastLock = null;
                 JSArray foundDevices = new JSArray();
                 Set<String> uniqueIps = new HashSet<>();
+                String scanError = null;
 
                 try {
-                    socket = new DatagramSocket();
+                    // Adquirir MulticastLock para que el chip WiFi no filtre los paquetes broadcast
+                    WifiManager wifiMgr = (WifiManager) getContext().getApplicationContext()
+                            .getSystemService(Context.WIFI_SERVICE);
+
+                    if (wifiMgr != null) {
+                        multicastLock = wifiMgr.createMulticastLock("SmartHomePro_scan");
+                        multicastLock.setReferenceCounted(false);
+                        multicastLock.acquire();
+                    }
+
+                    // Obtener la IP de la interfaz WiFi para vincular el socket a ella
+                    // (evita que el broadcast salga por la interfaz de datos móviles)
+                    InetAddress bindAddr = InetAddress.getByName("0.0.0.0");
+                    InetAddress broadcastAddr = InetAddress.getByName("255.255.255.255");
+
+                    if (wifiMgr != null) {
+                        @SuppressWarnings("deprecation")
+                        android.net.wifi.WifiInfo wifiInfo = wifiMgr.getConnectionInfo();
+                        int ipInt = (wifiInfo != null) ? wifiInfo.getIpAddress() : 0;
+                        if (ipInt != 0) {
+                            byte[] ipBytes = new byte[]{
+                                (byte)(ipInt & 0xFF),
+                                (byte)((ipInt >> 8) & 0xFF),
+                                (byte)((ipInt >> 16) & 0xFF),
+                                (byte)((ipInt >> 24) & 0xFF)
+                            };
+                            bindAddr = InetAddress.getByAddress(ipBytes);
+
+                            // Calcular la dirección de broadcast dirigida de la subred
+                            @SuppressWarnings("deprecation")
+                            DhcpInfo dhcp = wifiMgr.getDhcpInfo();
+                            if (dhcp != null && dhcp.netmask != 0) {
+                                int mask = dhcp.netmask;
+                                int bc = (ipInt & mask) | ~mask;
+                                byte[] bcBytes = new byte[]{
+                                    (byte)(bc & 0xFF),
+                                    (byte)((bc >> 8) & 0xFF),
+                                    (byte)((bc >> 16) & 0xFF),
+                                    (byte)((bc >> 24) & 0xFF)
+                                };
+                                broadcastAddr = InetAddress.getByAddress(bcBytes);
+                            }
+                        }
+                    }
+
+                    socket = new DatagramSocket(new InetSocketAddress(bindAddr, 0));
                     socket.setBroadcast(true);
                     socket.setSoTimeout(timeout);
 
                     byte[] sendData = "HF-A11ASSISTHREAD".getBytes();
-                    DatagramPacket sendPacket = new DatagramPacket(
-                            sendData,
-                            sendData.length,
-                            InetAddress.getByName("255.255.255.255"),
-                            48899
-                    );
 
+                    // Enviar al broadcast dirigido de la subred
+                    DatagramPacket sendPacket = new DatagramPacket(
+                            sendData, sendData.length, broadcastAddr, 48899);
                     socket.send(sendPacket);
+
+                    // También enviar a 255.255.255.255 como respaldo
+                    InetAddress globalBc = InetAddress.getByName("255.255.255.255");
+                    if (!broadcastAddr.equals(globalBc)) {
+                        try {
+                            socket.send(new DatagramPacket(sendData, sendData.length, globalBc, 48899));
+                        } catch (Exception ignored) {}
+                    }
 
                     byte[] receiveBuffer = new byte[1024];
                     long startTime = System.currentTimeMillis();
 
                     while (true) {
                         long remaining = timeout - (System.currentTimeMillis() - startTime);
-                        if (remaining <= 0) {
-                            break;
-                        }
+                        if (remaining <= 0) break;
                         socket.setSoTimeout((int) remaining);
 
                         DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
                         try {
                             socket.receive(receivePacket);
                             String data = new String(receivePacket.getData(), 0, receivePacket.getLength()).trim();
-                            
-                            // Formato esperado: IP,Mac,Model (ej. 192.168.1.2,ACC8E0010203,HF-LPB100)
+
+                            // Formato esperado: IP,MAC,Model (ej. 192.168.1.2,ACC8E0010203,HF-LPB100)
                             if (data.contains(",")) {
                                 String[] parts = data.split(",");
                                 if (parts.length >= 2) {
@@ -254,7 +306,6 @@ public class SocketBridgePlugin extends Plugin {
                                     String mac = parts[1].trim();
                                     String model = parts.length >= 3 ? parts[2].trim() : "Surplife Device";
 
-                                    // Evitar duplicados
                                     if (!uniqueIps.contains(ip) && !ip.equals("+ok")) {
                                         uniqueIps.add(ip);
                                         JSObject dev = new JSObject();
@@ -266,18 +317,23 @@ public class SocketBridgePlugin extends Plugin {
                                 }
                             }
                         } catch (java.net.SocketTimeoutException e) {
-                            // Fin del tiempo de escaneo
                             break;
                         }
                     }
                 } catch (Exception e) {
-                    // Ignorar errores menores del socket, devolver lo que tengamos
+                    scanError = e.getClass().getSimpleName() + ": " + e.getMessage();
                 } finally {
                     if (socket != null && !socket.isClosed()) {
                         socket.close();
                     }
+                    if (multicastLock != null && multicastLock.isHeld()) {
+                        multicastLock.release();
+                    }
                     JSObject response = new JSObject();
                     response.put("devices", foundDevices);
+                    if (scanError != null) {
+                        response.put("scanError", scanError);
+                    }
                     call.resolve(response);
                 }
             }
