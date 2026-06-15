@@ -13,18 +13,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0d0f14;
-            --card-bg: rgba(22, 26, 36, 0.6);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --text-primary: #ffffff;
-            --text-secondary: #8f9cae;
-            --accent-cyan: #00f0ff;
-            --accent-purple: #ab47bc;
-            --accent-green: #39ff14;
-            --accent-red: #ff3838;
+            --bg-color: #0a0b10;
+            --bg-secondary: #0f111a;
+            --card-bg: rgba(15, 17, 26, 0.8);
+            --card-border: rgba(255, 255, 255, 0.07);
+            --text-primary: #eef0ff;
+            --text-secondary: #6b7a94;
+            --text-muted: #363f52;
+            --accent-cyan: hsl(185, 100%, 50%);
+            --accent-violet: hsl(270, 70%, 62%);
+            --accent-purple: hsl(270, 70%, 62%);
+            --accent-green: hsl(152, 60%, 44%);
+            --accent-red: hsl(350, 85%, 62%);
+            --glow-cyan: rgba(0, 240, 255, 0.2);
+            --glow-violet: rgba(130, 80, 255, 0.2);
+            --glow-green: rgba(46, 196, 120, 0.2);
+            --glow-red: rgba(240, 60, 80, 0.2);
         }
 
-        * {
+        *, *::before, *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -41,11 +48,13 @@
             align-items: center;
             overflow-x: hidden;
             position: relative;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
-        /* Fondo Decorativo de Gradiente Difuminado (Glow effect) */
+        /* Fondo decorativo */
         .glow-bg {
-            position: absolute;
+            position: fixed;
             width: 100%;
             height: 100%;
             top: 0;
@@ -57,293 +66,338 @@
 
         .glow-blob-1 {
             position: absolute;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(0, 240, 255, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
-            top: -50px;
-            left: -50px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.08) 0%, transparent 70%);
+            top: -100px;
+            left: -80px;
             border-radius: 50%;
+            animation: blobFloat1 20s ease-in-out infinite alternate;
         }
 
         .glow-blob-2 {
             position: absolute;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(171, 71, 188, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
-            bottom: -100px;
-            right: -100px;
+            width: 520px;
+            height: 520px;
+            background: radial-gradient(circle, rgba(130, 80, 255, 0.07) 0%, transparent 70%);
+            bottom: -140px;
+            right: -120px;
             border-radius: 50%;
+            animation: blobFloat2 25s ease-in-out infinite alternate;
         }
 
+        @keyframes blobFloat1 {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(30px, 20px) scale(1.1); }
+        }
+        @keyframes blobFloat2 {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(-20px, -30px) scale(1.08); }
+        }
+
+        /* Header */
         header {
             width: 100%;
             max-width: 600px;
-            padding: 30px 20px 15px;
+            padding: 20px 18px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            background: linear-gradient(to bottom, rgba(10, 11, 16, 0.96) 60%, transparent);
         }
 
         h1 {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 800;
-            background: linear-gradient(45deg, #ffffff, var(--accent-cyan));
+            background: linear-gradient(120deg, #ffffff 0%, hsl(185, 100%, 70%) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.6px;
         }
 
         .btn-scan {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--card-border);
-            color: var(--text-primary);
-            padding: 10px 16px;
+            color: var(--text-secondary);
+            padding: 8px 14px;
             border-radius: 50px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            transition: background 0.22s, border-color 0.22s, color 0.22s, box-shadow 0.22s;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
             backdrop-filter: blur(10px);
         }
 
-        .btn-scan:hover {
-            background: var(--accent-cyan);
-            color: #000;
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        .btn-scan:hover, .btn-scan:active {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--accent-cyan);
+            border-color: rgba(0, 240, 255, 0.35);
+            box-shadow: 0 0 16px var(--glow-cyan);
         }
 
+        /* Container */
         .container {
             width: 100%;
             max-width: 600px;
-            padding: 0 20px 40px;
+            padding: 6px 16px 56px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 14px;
         }
 
-        /* Barra de Acciones Globales */
+        /* Quick Actions */
         .quick-actions-bar {
             display: flex;
-            gap: 12px;
+            gap: 10px;
             width: 100%;
         }
 
         .btn-action-all {
             flex: 1;
-            padding: 12px 16px;
+            padding: 12px 10px;
             border-radius: 14px;
             font-weight: 600;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            font-size: 13px;
+            transition: background 0.22s, border-color 0.22s, color 0.22s, box-shadow 0.22s;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--card-border);
-            color: var(--text-primary);
-            backdrop-filter: blur(10px);
+            color: var(--text-muted);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
         }
 
-        .btn-action-all.turn-on:hover {
-            background: rgba(0, 240, 255, 0.1);
-            border-color: var(--accent-cyan);
+        .btn-action-all.turn-on:hover, .btn-action-all.turn-on:active {
+            background: rgba(0, 240, 255, 0.08);
+            border-color: rgba(0, 240, 255, 0.3);
             color: var(--accent-cyan);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 14px var(--glow-cyan);
         }
 
-        .btn-action-all.turn-off:hover {
-            background: rgba(255, 56, 56, 0.1);
-            border-color: var(--accent-red);
+        .btn-action-all.turn-off:hover, .btn-action-all.turn-off:active {
+            background: rgba(240, 60, 80, 0.08);
+            border-color: rgba(240, 60, 80, 0.3);
             color: var(--accent-red);
-            box-shadow: 0 0 15px rgba(255, 56, 56, 0.2);
+            box-shadow: 0 0 14px var(--glow-red);
         }
 
-        /* Tarjeta de Dispositivo */
+        /* Device Card */
         .device-card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 24px;
-            padding: 24px;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            border-radius: 22px;
+            padding: 18px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 4px 28px rgba(0, 0, 0, 0.38);
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            gap: 14px;
+            transition: border-color 0.28s ease, box-shadow 0.28s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .device-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent);
         }
 
         .device-card.online {
-            border-color: rgba(0, 240, 255, 0.2);
+            border-color: rgba(0, 240, 255, 0.1);
         }
 
         .device-card.active-light {
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
-            border-color: rgba(0, 240, 255, 0.3);
+            border-color: rgba(0, 240, 255, 0.22);
+            box-shadow: 0 0 32px rgba(0, 240, 255, 0.1), 0 4px 28px rgba(0, 0, 0, 0.38);
         }
 
         .device-card.active-plug {
-            box-shadow: 0 0 30px rgba(57, 255, 20, 0.12);
-            border-color: rgba(57, 255, 20, 0.25);
+            border-color: rgba(46, 196, 120, 0.22);
+            box-shadow: 0 0 32px rgba(46, 196, 120, 0.1), 0 4px 28px rgba(0, 0, 0, 0.38);
         }
 
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 8px;
         }
 
         .device-info {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 3px;
+            min-width: 0;
         }
 
         .device-name {
-            font-size: 20px;
-            font-weight: 600;
+            font-size: 17px;
+            font-weight: 700;
             letter-spacing: -0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .device-ip {
-            font-size: 13px;
+            font-size: 11px;
             color: var(--text-secondary);
+            letter-spacing: 0.2px;
         }
 
+        /* Status Badge */
         .status-badge {
-            font-size: 11px;
-            font-weight: 600;
-            padding: 4px 10px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 9px;
             border-radius: 50px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            letter-spacing: 0.6px;
+            white-space: nowrap;
         }
 
         .status-badge.online {
             color: var(--accent-cyan);
-            background: rgba(0, 240, 255, 0.1);
-            border-color: rgba(0, 240, 255, 0.2);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+            background: rgba(0, 240, 255, 0.07);
+            border-color: rgba(0, 240, 255, 0.18);
         }
 
         .status-badge.offline {
-            color: var(--accent-red);
-            background: rgba(255, 56, 56, 0.1);
-            border-color: rgba(255, 56, 56, 0.2);
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.02);
+            border-color: rgba(255, 255, 255, 0.04);
         }
 
-        /* Botón de Olvidar Dispositivo */
+        /* Icon Buttons */
         .btn-delete-device {
-            background: rgba(255, 56, 56, 0.05);
-            border: 1px solid rgba(255, 56, 56, 0.2);
+            background: transparent;
+            border: 1px solid rgba(255, 80, 80, 0.14);
+            color: rgba(200, 80, 80, 0.45);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.2s, color 0.2s, border-color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-delete-device:hover, .btn-delete-device:active {
+            background: rgba(240, 60, 80, 0.14);
             color: var(--accent-red);
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            border-color: rgba(240, 60, 80, 0.35);
         }
 
-        .btn-delete-device:hover {
-            background: var(--accent-red);
-            color: #fff;
-            box-shadow: 0 0 10px rgba(255, 56, 56, 0.4);
-            border-color: var(--accent-red);
-        }
-
-        /* Botón de Programación */
         .btn-schedule-device {
-            background: rgba(0, 240, 255, 0.05);
-            border: 1px solid rgba(0, 240, 255, 0.2);
-            color: var(--accent-cyan);
-            width: 28px;
-            height: 28px;
+            background: transparent;
+            border: 1px solid rgba(0, 240, 255, 0.14);
+            color: rgba(0, 200, 220, 0.45);
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 14px;
-            transition: all 0.3s ease;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+            flex-shrink: 0;
         }
 
-        .btn-schedule-device:hover {
-            background: var(--accent-cyan);
-            color: #000;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
-            border-color: var(--accent-cyan);
+        .btn-schedule-device:hover, .btn-schedule-device:active {
+            background: rgba(0, 240, 255, 0.09);
+            color: var(--accent-cyan);
+            border-color: rgba(0, 240, 255, 0.32);
+            box-shadow: 0 0 10px var(--glow-cyan);
         }
 
-        /* Botón de Encendido / Apagado */
+        /* Power Button */
         .power-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            padding: 16px;
-            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 13px;
+            padding: 14px 16px;
+            color: var(--text-secondary);
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 10px;
-            transition: all 0.3s ease;
+            gap: 9px;
+            transition: all 0.24s ease;
+            letter-spacing: 0.2px;
+        }
+
+        .power-btn:disabled {
+            opacity: 0.28;
+            cursor: not-allowed;
         }
 
         .power-btn.on {
-            background: var(--accent-cyan);
-            color: #000;
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.14) 0%, rgba(0, 180, 240, 0.08) 100%);
+            color: var(--accent-cyan);
+            border-color: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 22px var(--glow-cyan), inset 0 1px 0 rgba(255,255,255,0.07);
         }
 
         .power-btn.on.plug-btn {
-            background: var(--accent-green);
-            color: #000;
-            border-color: var(--accent-green);
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
+            background: linear-gradient(135deg, rgba(46, 196, 120, 0.14) 0%, rgba(30, 160, 90, 0.08) 100%);
+            color: var(--accent-green);
+            border-color: rgba(46, 196, 120, 0.3);
+            box-shadow: 0 0 22px var(--glow-green), inset 0 1px 0 rgba(255,255,255,0.07);
         }
 
-        /* Controles de Foco (RGB & Whites) */
+        /* Color Controls */
         .color-controls {
             display: flex;
             flex-direction: column;
-            gap: 18px;
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding-top: 18px;
+            gap: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 14px;
         }
 
         .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-secondary);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1.2px;
         }
 
         .color-picker-row {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 14px;
         }
 
-        /* Selector de Color Personalizado */
         .picker-wrapper {
             position: relative;
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             overflow: hidden;
-            border: 2px solid #fff;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.22);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.08);
             cursor: pointer;
+            flex-shrink: 0;
         }
 
         .picker-wrapper input[type="color"] {
@@ -357,35 +411,35 @@
             background: none;
         }
 
-        /* Paleta de Colores Preset */
         .preset-colors-grid {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 9px;
             align-items: center;
         }
 
         .color-bubble {
-            width: 38px;
-            height: 38px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             cursor: pointer;
             border: 2px solid transparent;
-            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
         }
 
-        .color-bubble:hover {
-            transform: scale(1.15);
-            border-color: #fff;
+        .color-bubble:hover, .color-bubble:active {
+            transform: scale(1.2);
+            border-color: rgba(255,255,255,0.65);
         }
 
         .color-bubble.active-color {
             border-color: #fff;
-            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
-            transform: scale(1.1);
+            box-shadow: 0 0 14px rgba(255,255,255,0.35);
+            transform: scale(1.12);
         }
 
-        /* Sliders de Luz Blanca */
+        /* Sliders */
         .slider-group {
             display: flex;
             flex-direction: column;
@@ -402,59 +456,61 @@
         .slider-input {
             -webkit-appearance: none;
             width: 100%;
-            height: 6px;
+            height: 5px;
             border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
             outline: none;
         }
 
         .slider-input::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: var(--accent-cyan);
+            background: #fff;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
-            transition: transform 0.1s ease;
+            border: 2px solid var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.22), 0 2px 8px rgba(0,0,0,0.4);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
         }
 
         .slider-input::-webkit-slider-thumb:active {
-            transform: scale(1.3);
+            transform: scale(1.28);
+            box-shadow: 0 0 0 5px rgba(0, 240, 255, 0.15), 0 2px 8px rgba(0,0,0,0.4);
         }
 
-        /* --- Estilos del Timer Countdown --- */
+        /* Timer */
         .timer-section {
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 14px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         .timer-presets {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 7px;
         }
 
         .timer-preset-btn {
-            padding: 8px 14px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--card-border);
-            color: var(--text-primary);
-            font-size: 13px;
+            padding: 7px 13px;
+            border-radius: 50px;
+            background: rgba(130, 80, 255, 0.06);
+            border: 1px solid rgba(130, 80, 255, 0.18);
+            color: rgba(160, 120, 255, 0.75);
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
         }
 
-        .timer-preset-btn:hover {
-            background: rgba(171, 71, 188, 0.12);
-            border-color: var(--accent-purple);
-            color: var(--accent-purple);
+        .timer-preset-btn:hover, .timer-preset-btn:active {
+            background: rgba(130, 80, 255, 0.16);
+            border-color: var(--accent-violet);
+            color: var(--accent-violet);
+            box-shadow: 0 0 12px var(--glow-violet);
         }
 
         .timer-custom-row {
@@ -464,11 +520,11 @@
         }
 
         .timer-custom-row input {
-            width: 70px;
-            background: rgba(255, 255, 255, 0.05);
+            width: 66px;
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--card-border);
             padding: 8px 10px;
-            border-radius: 8px;
+            border-radius: 10px;
             color: #fff;
             font-size: 14px;
             outline: none;
@@ -476,194 +532,196 @@
         }
 
         .timer-custom-row input:focus {
-            border-color: var(--accent-purple);
+            border-color: rgba(130, 80, 255, 0.4);
+            box-shadow: 0 0 0 2px rgba(130, 80, 255, 0.12);
         }
 
         .timer-custom-row button {
-            padding: 8px 14px;
-            border-radius: 10px;
-            background: var(--accent-purple);
+            padding: 8px 16px;
+            border-radius: 50px;
+            background: var(--accent-violet);
             border: none;
             color: #fff;
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: opacity 0.2s, box-shadow 0.2s;
         }
 
         .timer-custom-row button:hover {
-            box-shadow: 0 0 12px rgba(171, 71, 188, 0.4);
+            opacity: 0.88;
+            box-shadow: 0 0 14px var(--glow-violet);
         }
 
         .timer-active-display {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(171, 71, 188, 0.08);
-            border: 1px solid rgba(171, 71, 188, 0.25);
+            background: rgba(130, 80, 255, 0.07);
+            border: 1px solid rgba(130, 80, 255, 0.2);
             border-radius: 14px;
-            padding: 14px 16px;
-            animation: timerPulse 2s ease-in-out infinite;
+            padding: 13px 15px;
+            animation: timerPulse 2.5s ease-in-out infinite;
         }
 
         @keyframes timerPulse {
-            0%, 100% { box-shadow: 0 0 0 rgba(171, 71, 188, 0); }
-            50% { box-shadow: 0 0 16px rgba(171, 71, 188, 0.2); }
+            0%, 100% { box-shadow: 0 0 0 rgba(130, 80, 255, 0); }
+            50%       { box-shadow: 0 0 18px rgba(130, 80, 255, 0.16); }
         }
 
         .timer-countdown {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--accent-purple);
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--accent-violet);
             font-variant-numeric: tabular-nums;
+            letter-spacing: -0.5px;
         }
 
         .timer-cancel-btn {
-            background: rgba(255, 56, 56, 0.1);
-            border: 1px solid rgba(255, 56, 56, 0.25);
+            background: rgba(240, 60, 80, 0.08);
+            border: 1px solid rgba(240, 60, 80, 0.2);
             color: var(--accent-red);
             padding: 6px 14px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: 600;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.2s;
         }
 
         .timer-cancel-btn:hover {
-            background: var(--accent-red);
-            color: #fff;
+            background: rgba(240, 60, 80, 0.18);
         }
 
-        /* --- Estilos del Drawer de Programaciones --- */
+        /* Schedule Drawer */
         .schedule-drawer {
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
-            padding-top: 18px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 16px;
             display: none;
             flex-direction: column;
-            gap: 15px;
+            gap: 13px;
         }
 
         .days-pills {
             display: flex;
-            gap: 6px;
+            gap: 5px;
             flex-wrap: wrap;
-            margin-top: 5px;
+            margin-top: 4px;
         }
 
-        .days-pills label {
-            cursor: pointer;
-        }
-
-        .days-pills input {
-            display: none;
-        }
+        .days-pills label { cursor: pointer; }
+        .days-pills input { display: none; }
 
         .days-pills span {
             display: inline-block;
-            padding: 6px 10px;
+            padding: 5px 9px;
             border-radius: 8px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--card-border);
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            transition: all 0.18s ease;
+            letter-spacing: 0.3px;
         }
 
-        .days-pills input:checked+span {
-            background: var(--accent-cyan);
-            color: #000;
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        .days-pills input:checked + span {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--accent-cyan);
+            border-color: rgba(0, 240, 255, 0.28);
+            box-shadow: 0 0 8px var(--glow-cyan);
         }
 
-        /* Switch Toggle para Programaciones */
+        /* Switch */
         .switch-container {
             position: relative;
             display: inline-block;
-            width: 38px;
-            height: 20px;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
         }
 
-        .switch-container input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .switch-container input { opacity: 0; width: 0; height: 0; }
 
         .switch-slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            transition: .3s;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 22px;
+            transition: 0.26s;
         }
 
         .switch-slider:before {
             position: absolute;
             content: "";
-            height: 14px;
-            width: 14px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-secondary);
             border-radius: 50%;
-            transition: .3s;
+            transition: 0.26s;
         }
 
-        .switch-container input:checked+.switch-slider {
-            background-color: var(--accent-cyan);
+        .switch-container input:checked + .switch-slider {
+            background: rgba(0, 240, 255, 0.2);
+            border-color: rgba(0, 240, 255, 0.45);
         }
 
-        .switch-container input:checked+.switch-slider:before {
+        .switch-container input:checked + .switch-slider:before {
             transform: translateX(18px);
-            background-color: #000;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--glow-cyan);
         }
 
-        /* Ventanas Modales */
+        /* Modals — bottom sheet */
         .modal {
             position: fixed;
-            top: 0;
-            left: 0;
+            top: 0; left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             z-index: 100;
             display: none;
-            justify-content: center;
+            flex-direction: column;
+            justify-content: flex-end;
             align-items: center;
-            padding: 20px;
         }
 
         .modal-content {
-            background: #121620;
-            border: 1px solid var(--card-border);
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-bottom: none;
             width: 100%;
-            max-width: 450px;
-            border-radius: 28px;
-            padding: 30px;
+            max-width: 600px;
+            border-radius: 26px 26px 0 0;
+            padding: 10px 22px 40px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
-            animation: modalFadeIn 0.3s ease;
+            gap: 16px;
+            animation: slideUp 0.3s cubic-bezier(0.34, 1.15, 0.64, 1);
+            max-height: 88vh;
+            overflow-y: auto;
         }
 
-        @keyframes modalFadeIn {
-            from {
-                transform: translateY(20px);
-                opacity: 0;
-            }
+        .modal-content::before {
+            content: '';
+            display: block;
+            width: 36px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.1);
+            margin: 4px auto 6px;
+            flex-shrink: 0;
+        }
 
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
         }
 
         .modal-header {
@@ -673,121 +731,130 @@
         }
 
         .modal-title {
-            font-size: 22px;
+            font-size: 19px;
             font-weight: 700;
+            letter-spacing: -0.3px;
         }
 
         .modal-close {
-            background: rgba(255, 255, 255, 0.05);
-            border: none;
-            color: #fff;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-secondary);
             width: 32px;
             height: 32px;
             border-radius: 50%;
             cursor: pointer;
             font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
         }
 
-        /* Campos de formulario */
+        .modal-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        /* Forms */
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .form-group label {
-            font-size: 13px;
+            font-size: 11px;
             color: var(--text-secondary);
-            font-weight: 600;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
         }
 
         .form-group input,
         .form-group select {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--card-border);
-            padding: 12px 16px;
+            padding: 12px 14px;
             border-radius: 12px;
-            color: #fff;
+            color: var(--text-primary);
             font-size: 15px;
             outline: none;
             width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        .form-group input:focus {
-            border-color: var(--accent-cyan);
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: rgba(0, 240, 255, 0.38);
+            box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.07);
         }
 
         .btn-submit {
-            background: var(--accent-cyan);
+            background: linear-gradient(135deg, hsl(185,100%,44%) 0%, hsl(200,85%,44%) 100%);
             color: #000;
             border: none;
             padding: 14px;
-            border-radius: 14px;
-            font-weight: 600;
+            border-radius: 13px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: opacity 0.2s, box-shadow 0.2s;
             text-align: center;
+            font-size: 14px;
+            letter-spacing: 0.2px;
         }
 
-        .btn-submit:hover {
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
-        }
+        .btn-submit:hover { opacity: 0.9; box-shadow: 0 4px 18px var(--glow-cyan); }
 
-        /* Lista de Dispositivos Escaneados */
+        /* Scan list */
         .scan-list {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            max-height: 250px;
+            gap: 10px;
+            max-height: 260px;
             overflow-y: auto;
-            margin-top: 10px;
         }
 
         .scan-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--card-border);
             border-radius: 14px;
-            padding: 14px 16px;
+            padding: 12px 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 10px;
         }
 
-        .scan-card-name {
-            font-size: 15px;
-            font-weight: 600;
-        }
+        .scan-card-name { font-size: 14px; font-weight: 600; }
 
-        .scan-card-ip {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
+        .scan-card-ip { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
         .scan-card-btn {
             background: var(--accent-cyan);
             border: none;
             color: #000;
             padding: 6px 14px;
-            border-radius: 20px;
+            border-radius: 50px;
             font-size: 12px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: opacity 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
         }
 
+        .scan-card-btn:hover { opacity: 0.88; box-shadow: 0 0 12px var(--glow-cyan); }
+
         .scan-card-btn:disabled {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-secondary);
+            background: rgba(255,255,255,0.07);
+            color: var(--text-muted);
             cursor: not-allowed;
         }
 
         .loader {
-            border: 3px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255,255,255,0.06);
             border-radius: 50%;
-            border-top: 3px solid var(--accent-cyan);
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
+            border-top: 2px solid var(--accent-cyan);
+            width: 28px;
+            height: 28px;
+            animation: spin 0.85s linear infinite;
             margin: 20px auto;
         }
 
@@ -796,10 +863,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        .spinner-container {
-            text-align: center;
-            padding: 20px 0;
-        }
+        .spinner-container { text-align: center; padding: 20px 0; }
     </style>
 </head>
 
@@ -811,18 +875,21 @@
     </div>
 
     <header>
-        <h1>SmartHome Pro</h1>
+        <div style="display: flex; flex-direction: column; gap: 1px;">
+            <h1>SmartHome Pro</h1>
+            <span style="font-size: 11px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.3px; padding-left: 2px;">Control local · Sin nube</span>
+        </div>
         <div style="display: flex; gap: 8px;">
             <button class="btn-scan" onclick="abrirModalEscanear()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
                 Escanear
             </button>
-            <button class="btn-scan" onclick="abrirModalAjustes()" title="Ajustes de Optimización">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="btn-scan" onclick="abrirModalAjustes()" title="Ajustes de Optimización" style="padding: 8px 10px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="3"></circle>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                 </svg>
@@ -833,13 +900,19 @@
     <div class="container">
         <!-- Acciones Rápidas Globales -->
         <div class="quick-actions-bar">
-            <button class="btn-action-all turn-on" onclick="controlGlobal(true)">Encender Todo</button>
-            <button class="btn-action-all turn-off" onclick="controlGlobal(false)">Apagar Todo</button>
+            <button class="btn-action-all turn-on" onclick="controlGlobal(true)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                Encender Todo
+            </button>
+            <button class="btn-action-all turn-off" onclick="controlGlobal(false)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+                Apagar Todo
+            </button>
         </div>
 
-        <div id="devices-container" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+        <div id="devices-container" style="display: flex; flex-direction: column; gap: 14px; width: 100%;">
             <!-- Tarjetas dinámicas se inyectarán aquí -->
-            <div style="text-align: center; color: var(--text-secondary); padding: 40px 0;">
+            <div style="text-align: center; color: var(--text-muted); padding: 40px 0; font-size: 14px;">
                 Cargando dispositivos...
             </div>
         </div>
@@ -866,32 +939,38 @@
                 <span class="modal-title">Ajustes de Optimización</span>
                 <button class="modal-close" onclick="cerrarModalAjustes()">×</button>
             </div>
-            <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
-                Para garantizar que las tareas programadas y temporizadores se ejecuten con precisión cuando el celular esté bloqueado o con la pantalla apagada, es necesario configurar estos permisos de Android:
+            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                Estos permisos garantizan que los temporizadores y alarmas se activen con precisión aunque el teléfono esté bloqueado.
             </p>
-            
-            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
                 <!-- Optimización de Batería -->
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 14px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600; font-size: 15px;">🔋 Optimización de Batería</span>
-                        <span id="battery-status-badge" class="status-badge">Verificando...</span>
+                <div style="background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 16px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px; line-height: 1;">🔋</span>
+                            <div>
+                                <p style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Optimización de Batería</p>
+                                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Permite enviar señales en segundo plano</p>
+                            </div>
+                        </div>
+                        <span id="battery-status-badge" class="status-badge" style="flex-shrink: 0;">···</span>
                     </div>
-                    <p style="font-size: 12px; color: var(--text-secondary);">
-                        Permite que la app envíe señales de red local en segundo plano sin ser congelada por el sistema.
-                      </p>
                     <button class="btn-submit" id="btn-battery-settings" onclick="configurarBateria()" style="padding: 10px; font-size: 13px;">Excluir del Ahorro</button>
                 </div>
 
-                <!-- Alertas / Alarmas Exactas -->
-                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); padding: 14px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600; font-size: 15px;">⏰ Alarmas Exactas</span>
-                        <span id="alarm-status-badge" class="status-badge">Verificando...</span>
+                <!-- Alarmas Exactas -->
+                <div style="background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); padding: 16px; border-radius: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px; line-height: 1;">⏰</span>
+                            <div>
+                                <p style="font-weight: 700; font-size: 14px; color: var(--text-primary);">Alarmas Exactas</p>
+                                <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Requerido en Android 12+ para exactitud</p>
+                            </div>
+                        </div>
+                        <span id="alarm-status-badge" class="status-badge" style="flex-shrink: 0;">···</span>
                     </div>
-                    <p style="font-size: 12px; color: var(--text-secondary);">
-                        Requerido para que las tareas se activen exactamente a la hora y minuto programados en Android 12+.
-                    </p>
                     <button class="btn-submit" id="btn-alarm-settings" onclick="configurarAlarmasExactas()" style="padding: 10px; font-size: 13px;">Dar Permiso</button>
                 </div>
             </div>
@@ -1383,9 +1462,12 @@
 
             if (dispositivos.length === 0) {
                 container.innerHTML = `
-                    <div style="text-align: center; color: var(--text-secondary); padding: 40px 0; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 24px; backdrop-filter: blur(10px);">
-                        <p style="margin-bottom: 15px;">No hay dispositivos registrados.</p>
-                        <p style="font-size: 13px;">Haz clic en <strong>Escanear</strong> arriba para buscarlos automáticamente.</p>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 44px 20px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 22px; backdrop-filter: blur(18px); text-align: center;">
+                        <div style="width: 60px; height: 60px; border-radius: 18px; background: rgba(0,240,255,0.06); border: 1px solid rgba(0,240,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 26px;">💡</div>
+                        <div>
+                            <p style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">Sin dispositivos</p>
+                            <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.55;">Toca <strong style="color: var(--accent-cyan);">Escanear</strong> para encontrar focos y enchufes en tu red WiFi.</p>
+                        </div>
                     </div>`;
                 return;
             }
@@ -1403,24 +1485,35 @@
                 if (dev.online && dev.tipo === "foco") {
                     controlesExtrasHTML = `
                         <div class="color-controls">
-                            <span class="section-title">Color</span>
+                            <span class="section-title" style="display: flex; align-items: center; gap: 5px;">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+                                Color RGB
+                            </span>
                             <div class="color-picker-row">
                                 <div class="picker-wrapper">
                                     <input type="color" value="#ffffff" oninput="throttleControlColor('${dev.ip}', this.value)">
                                 </div>
+                                <span style="font-size: 12px; color: var(--text-muted);">Selector libre</span>
                             </div>
-                            
                             <div class="preset-colors-grid">
                                 ${COLORES_PRESET.map(c => `<div class="color-bubble" style="background-color: rgb(${c.r},${c.g},${c.b})" title="${c.nombre}" onclick="cambiarColor('${dev.ip}', ${c.r}, ${c.g}, ${c.b})"></div>`).join('')}
                             </div>
-                            
-                            <span class="section-title">Calidez (Frío — Cálido)</span>
+
+                            <div style="height: 1px; background: rgba(255,255,255,0.05); margin: 2px 0;"></div>
+
+                            <span class="section-title">Luz Blanca · Calidez</span>
                             <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>Frío</span><span>Cálido</span>
+                                </div>
                                 <input type="range" min="0" max="100" value="${dev.calidez ?? 50}" class="slider-input" oninput="throttleCambiarBlanco('${dev.ip}', this.value, null)">
                             </div>
-                            
+
                             <span class="section-title">Intensidad</span>
                             <div class="slider-group">
+                                <div class="slider-header">
+                                    <span>Mín</span><span>Máx</span>
+                                </div>
                                 <input type="range" min="10" max="100" value="${dev.intensidad ?? 100}" class="slider-input" oninput="throttleCambiarBlanco('${dev.ip}', null, this.value)">
                             </div>
                         </div>`;
@@ -1430,11 +1523,16 @@
 
                 card.innerHTML = `
                     <div class="card-header">
-                        <div class="device-info">
-                            <span class="device-name">${escHTML(dev.nombre)}</span>
-                            <span class="device-ip">${escHTML(dev.ip)} (${escHTML(dev.tipo.toUpperCase())})</span>
+                        <div style="display: flex; align-items: center; gap: 11px; min-width: 0; flex: 1;">
+                            <div style="width: 42px; height: 42px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 20px; ${dev.tipo === 'foco' ? 'background: rgba(0,240,255,0.07); border: 1px solid rgba(0,240,255,0.13);' : 'background: rgba(46,196,120,0.07); border: 1px solid rgba(46,196,120,0.13);'}">
+                                ${dev.tipo === 'foco' ? '💡' : '🔌'}
+                            </div>
+                            <div class="device-info">
+                                <span class="device-name">${escHTML(dev.nombre)}</span>
+                                <span class="device-ip">${escHTML(dev.ip)}</span>
+                            </div>
                         </div>
-                        <div style="display: flex; gap: 8px; align-items: center;">
+                        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0; margin-left: 6px;">
                             <span class="status-badge ${dev.online ? 'online' : 'offline'}">${dev.online ? 'ONLINE' : 'OFFLINE'}</span>
                             <button class="btn-schedule-device" onclick="alternarSeccionProgramacion('${dev.ip}')" title="Programar encendido/apagado">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
@@ -1453,7 +1551,10 @@
                     <!-- TIMER COUNTDOWN -->
                     ${dev.online ? `
                     <div class="timer-section">
-                        <span class="section-title">⏱ Temporizador</span>
+                        <span class="section-title" style="display: flex; align-items: center; gap: 5px;">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            Temporizador
+                        </span>
                         <div id="timer-ui-${ipId}">
                             ${timersActivos[dev.ip] ? '' : `
                             <div class="timer-presets">

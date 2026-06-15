@@ -54,6 +54,9 @@ Para posibilitar la comunicación de red local y las tareas en segundo plano, la
 <!-- Programación exacta para automatizaciones (Android 12+) -->
 <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+<!-- Diálogo directo de exención de ahorro de batería -->
+<uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 ```
 
 ---
@@ -114,7 +117,7 @@ El programador inteligente permite al usuario programar tareas recurrentes en d�
 1.  El usuario selecciona una hora, los días de repetición y una acción (encender o apagar).
 2.  La capa de presentación almacena los datos en el `localStorage` del WebView para persistencia visual.
 3.  Llama al método nativo `setAlarm` pasando los parámetros.
-4.  El plugin crea un `PendingIntent` apuntando a [AlarmReceiver.class](file:///c:/controlador/SmartHomePro-Android/android/app/src/main/java/com/smarthomepro/app/AlarmReceiver.java), asignándole un identificador único numérico mediante el hash del `id` de la tarea.
+4.  El plugin asigna un `requestCode` único incremental (persistiéndolo en `SharedPreferences` para el `id` dado de la tarea) y crea un `PendingIntent` apuntando a [AlarmReceiver.class](file:///c:/controlador/SmartHomePro-Android/android/app/src/main/java/com/smarthomepro/app/AlarmReceiver.java). Esto evita colisiones de hash al registrar múltiples tareas.
 5.  Calcula el tiempo de ejecución inicial utilizando `java.util.Calendar`. Si la hora ya transcurrió en el día actual, calcula la fecha para el día siguiente.
 6.  Registra la alarma de forma exacta utilizando:
     *   `alarmManager.setExactAndAllowWhileIdle()` (en Android 6.0+) para evitar que Doze Mode o el sistema de ahorro de energía retrasen la acción.
