@@ -936,6 +936,19 @@
         let messageCounter = 0;
         let timersActivos = {};  // { ip: { intervalId, endTime } }
 
+        function escHTML(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function escJS(str) {
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
         const TIEMPOS_PRESET = [
             { label: '5 min',  minutos: 5   },
             { label: '15 min', minutos: 15  },
@@ -1413,15 +1426,15 @@
                 card.innerHTML = `
                     <div class="card-header">
                         <div class="device-info">
-                            <span class="device-name">${dev.nombre}</span>
-                            <span class="device-ip">${dev.ip} (${dev.tipo.toUpperCase()})</span>
+                            <span class="device-name">${escHTML(dev.nombre)}</span>
+                            <span class="device-ip">${escHTML(dev.ip)} (${escHTML(dev.tipo.toUpperCase())})</span>
                         </div>
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span class="status-badge ${dev.online ? 'online' : 'offline'}">${dev.online ? 'ONLINE' : 'OFFLINE'}</span>
                             <button class="btn-schedule-device" onclick="alternarSeccionProgramacion('${dev.ip}')" title="Programar encendido/apagado">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                             </button>
-                            <button class="btn-delete-device" onclick="confirmarEliminarDispositivo('${dev.ip}', '${dev.nombre}')" title="Olvidar dispositivo">
+                            <button class="btn-delete-device" onclick="confirmarEliminarDispositivo('${escJS(dev.ip)}', '${escJS(dev.nombre)}')" title="Olvidar dispositivo">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                             </button>
                         </div>
@@ -2052,8 +2065,8 @@
                             card.className = "scan-card";
                             card.innerHTML = `
                                 <div>
-                                    <div class="scan-card-name">${dev.model}</div>
-                                    <div class="scan-card-ip">${dev.ip} <span style="opacity:0.5;">(${dev.mac})</span></div>
+                                    <div class="scan-card-name">${escHTML(dev.model)}</div>
+                                    <div class="scan-card-ip">${escHTML(dev.ip)} <span style="opacity:0.5;">(${escHTML(dev.mac)})</span></div>
                                 </div>
                                 <div style="display: flex; gap: 6px; align-items: center;">
                                     <button class="scan-card-btn" style="background: rgba(171, 71, 188, 0.15); color: var(--accent-purple); border: 1px solid rgba(171, 71, 188, 0.3);"

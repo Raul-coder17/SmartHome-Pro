@@ -24,9 +24,9 @@ public class AlarmReceiver extends BroadcastReceiver {
         int hour = intent.getIntExtra("hour", -1);
         int minute = intent.getIntExtra("minute", -1);
 
-        if (ip == null || action == null || hour == -1 || minute == -1) {
-            return;
-        }
+        boolean isOnce = "once".equals(daysStr);
+        if (ip == null || action == null) return;
+        if (!isOnce && (hour == -1 || minute == -1)) return;
 
         // Adquirir WakeLock para que el celular no se duerma a mitad de la transmisión de red
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
@@ -47,7 +47,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         Calendar ahora = Calendar.getInstance();
         int diaSemana = ahora.get(Calendar.DAY_OF_WEEK); // 1 = Domingo, 2 = Lunes, ..., 7 = Sábado
 
-        if (daysStr == null || daysStr.isEmpty() || daysStr.equals("Diario")) {
+        if (isOnce || daysStr == null || daysStr.isEmpty() || daysStr.equals("Diario")) {
             debeCorrerHoy = true;
         } else {
             String[] dias = daysStr.split(",");
