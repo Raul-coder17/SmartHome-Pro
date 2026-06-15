@@ -1071,8 +1071,10 @@
         // --- Persistencia con LocalStorage ---
 
         function getDispositivosLocal() {
-            const data = localStorage.getItem('dispositivos');
-            return data ? JSON.parse(data) : [];
+            try {
+                const data = localStorage.getItem('dispositivos');
+                return data ? JSON.parse(data) : [];
+            } catch { return []; }
         }
 
         function saveDispositivosLocal(list) {
@@ -1082,8 +1084,10 @@
 
 
         function getProgramacionesLocal() {
-            const data = localStorage.getItem('programaciones');
-            return data ? JSON.parse(data) : [];
+            try {
+                const data = localStorage.getItem('programaciones');
+                return data ? JSON.parse(data) : [];
+            } catch { return []; }
         }
 
         function saveProgramacionesLocal(list) {
@@ -1094,10 +1098,10 @@
 
         async function waitForCapacitorBridge(maxWaitMs = 3000) {
             const start = Date.now();
-            while (!window.Capacitor && (Date.now() - start) < maxWaitMs) {
+            while (!(window.Capacitor?.Plugins?.SocketBridge) && (Date.now() - start) < maxWaitMs) {
                 await new Promise(r => setTimeout(r, 100));
             }
-            if (window.Capacitor) {
+            if (window.Capacitor?.Plugins?.SocketBridge) {
                 console.log("Capacitor Bridge detectado correctamente.");
             } else {
                 console.warn("Capacitor Bridge no disponible después de " + maxWaitMs + "ms.");
@@ -1115,8 +1119,10 @@
         }
 
         function getTimersActivosLocal() {
-            const data = localStorage.getItem('timers_activos');
-            return data ? JSON.parse(data) : {};
+            try {
+                const data = localStorage.getItem('timers_activos');
+                return data ? JSON.parse(data) : {};
+            } catch { return {}; }
         }
 
         function saveTimersActivosLocal(timers) {
@@ -1263,7 +1269,6 @@
             dispositivos = getDispositivosLocal();
             inicializarMetadatosDispositivos();
             renderizarDispositivos();
-            actualizarEstadosDispositivos();
         }
 
         // Consulta en paralelo con concurrencia controlada el estado real
@@ -1521,12 +1526,12 @@
 
         // --- Lógica del Timer Countdown ---
 
-        function iniciarTimer(ip, minutos) {
+        async function iniciarTimer(ip, minutos) {
             if (!minutos || minutos < 1) return;
 
             // Si ya hay un timer activo para esta IP, cancelarlo primero
             if (timersActivos[ip]) {
-                cancelarTimer(ip, true);
+                await cancelarTimer(ip, true);
             }
 
             // Encender el dispositivo

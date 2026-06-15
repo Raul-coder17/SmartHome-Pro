@@ -344,7 +344,7 @@ public class SocketBridgePlugin extends Plugin {
         intent.putExtra("hour", hour);
         intent.putExtra("minute", minute);
 
-        int requestCode = id.hashCode();
+        int requestCode = getRequestCode(context, id);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             flags |= PendingIntent.FLAG_IMMUTABLE;
@@ -407,6 +407,7 @@ public class SocketBridgePlugin extends Plugin {
             editor.remove(id + "_hour");
             editor.remove(id + "_minute");
             editor.remove(id + "_active");
+            editor.remove(id + "_requestCode");
 
             Set<String> ids = prefs.getStringSet("alarm_ids", new HashSet<String>());
             if (ids.contains(id)) {
@@ -426,7 +427,7 @@ public class SocketBridgePlugin extends Plugin {
         }
 
         Intent intent = new Intent(context, AlarmReceiver.class);
-        int requestCode = id.hashCode();
+        int requestCode = getRequestCode(context, id);
         int flags = PendingIntent.FLAG_NO_CREATE;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             flags |= PendingIntent.FLAG_IMMUTABLE;
@@ -485,7 +486,7 @@ public class SocketBridgePlugin extends Plugin {
         intent.putExtra("action", action);
         intent.putExtra("days", "once");
 
-        int requestCode = id.hashCode();
+        int requestCode = getRequestCode(context, id);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             flags |= PendingIntent.FLAG_IMMUTABLE;
@@ -536,7 +537,8 @@ public class SocketBridgePlugin extends Plugin {
             PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
             if (pm != null && !pm.isIgnoringBatteryOptimizations(context.getPackageName())) {
                 try {
-                    Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                    Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(Uri.parse("package:" + context.getPackageName()));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     context.startActivity(intent);
                 } catch (Exception e) {
@@ -586,5 +588,18 @@ public class SocketBridgePlugin extends Plugin {
             }
         }
         call.resolve();
+    }
+
+    private static int getRequestCode(Context context, String id) {
+        SharedPreferences prefs = context.getSharedPreferences("smart_home_alarms", Context.MODE_PRIVATE);
+        int requestCode = prefs.getInt(id + "_requestCode", -1);
+        if (requestCode == -1) {
+            requestCode = prefs.getInt("next_request_code", 1);
+            prefs.edit()
+                 .putInt(id + "_requestCode", requestCode)
+                 .putInt("next_request_code", requestCode + 1)
+                 .apply();
+        }
+        return requestCode;
     }
 }

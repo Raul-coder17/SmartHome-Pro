@@ -152,7 +152,12 @@ public class AlarmReceiver extends BroadcastReceiver {
         intent.putExtra("hour", hour);
         intent.putExtra("minute", minute);
 
-        int requestCode = id.hashCode();
+        android.content.SharedPreferences rcPrefs = context.getSharedPreferences("smart_home_alarms", Context.MODE_PRIVATE);
+        int requestCode = rcPrefs.getInt(id + "_requestCode", -1);
+        if (requestCode == -1) {
+            requestCode = rcPrefs.getInt("next_request_code", 1);
+            rcPrefs.edit().putInt(id + "_requestCode", requestCode).putInt("next_request_code", requestCode + 1).apply();
+        }
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             flags |= PendingIntent.FLAG_IMMUTABLE;

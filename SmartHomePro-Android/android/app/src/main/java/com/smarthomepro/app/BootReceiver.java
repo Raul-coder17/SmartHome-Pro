@@ -78,7 +78,11 @@ public class BootReceiver extends BroadcastReceiver {
                         triggerTime = cal.getTimeInMillis();
                     }
 
-                    int requestCode = id.hashCode();
+                    int requestCode = prefs.getInt(id + "_requestCode", -1);
+                    if (requestCode == -1) {
+                        requestCode = prefs.getInt("next_request_code", 1);
+                        prefs.edit().putInt(id + "_requestCode", requestCode).putInt("next_request_code", requestCode + 1).apply();
+                    }
                     int flags = PendingIntent.FLAG_UPDATE_CURRENT;
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                         flags |= PendingIntent.FLAG_IMMUTABLE;
